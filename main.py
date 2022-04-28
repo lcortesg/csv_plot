@@ -1,5 +1,4 @@
 import streamlit as st
-import cv2
 # To make things easier later, we're also importing numpy and pandas for
 # working with sample data.
 import numpy as np
@@ -15,8 +14,6 @@ from plotly.subplots import make_subplots
 from PIL import Image
 from scipy.signal import butter, filtfilt
 from numpy import diff
-import mysql.connector
-from mysql.connector import connect, Error
 
 
 def main():
