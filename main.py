@@ -23,6 +23,9 @@ def main():
         page_icon=im,
         layout="wide",
     )
+
+    st.title('Lanek Plot')
+
     uploaded_file = st.file_uploader("Elige el archivo CSV")
     if uploaded_file is not None:
         # To read file as bytes:
@@ -39,8 +42,9 @@ def main():
 
         # Can be used wherever a "file-like" object is accepted:
         dataframe = pd.read_csv(uploaded_file)
+        dataframe.rename(columns = {'Unnamed: 0':'Tiempo','0':'Fuerza'}, inplace = True)
         #st.write(dataframe)
-        data = dataframe["0"]
+        data = dataframe["Fuerza"]
         data_filt = butter_lowpass_filter(data, cutoff=6, fs=120, order=8)
         st.line_chart(data_filt)
     #report()
