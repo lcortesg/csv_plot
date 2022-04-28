@@ -40,13 +40,23 @@ def main():
         #string_data = stringio.read()
         #st.write(string_data)
 
-        # Can be used wherever a "file-like" object is accepted:
         dataframe = pd.read_csv(uploaded_file)
         dataframe.rename(columns = {'Unnamed: 0':'Tiempo','0':'Fuerza'}, inplace = True)
-        #st.write(dataframe)
         data = dataframe["Fuerza"]
-        data_filt = butter_lowpass_filter(data, cutoff=6, fs=120, order=8)
-        st.line_chart(data_filt)
+        data_max=[]
+        for i in range(len(data)):
+            data_max.append(np.max(data))
+        data_avg=[]
+        for j in range(len(data)):
+            data_avg.append(np.average(data))
+        df = pd.DataFrame({"Fuerza": data,
+                            f'Máximo: {trunc(data_max[0],1)}': data_max,
+                            f'Valor Medio: {trunc(data_avg[0],1)}': data_avg})
+        #st.write(df)
+
+    
+        #data_filt = butter_lowpass_filter(data, cutoff=6, fs=120, order=8)
+        st.line_chart(df)
     #report()
 
 
@@ -58,6 +68,10 @@ def butter_lowpass_filter(data, cutoff=6, fs=120, order=8):
     b, a = butter(order, normal_cutoff, btype="low", analog=False)
     y = filtfilt(b, a, data)  # Filter data
     return y
+
+@st.cache
+def trunc(values, decs=0):
+    return np.trunc(values*10**decs)/(10**decs)
         
 if __name__ == "__main__":
     main()
