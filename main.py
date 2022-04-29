@@ -16,7 +16,7 @@ def main():
 
     st.title("CSV Plot")
 
-    uploaded_files = st.file_uploader("Hola Nico! elige un archivo CSV", accept_multiple_files=True, on_change=main, help="Selecciona uno o más archivos CSV para graficar")
+    uploaded_files = st.file_uploader("Hola Nico! elige un archivo CSV", accept_multiple_files=True, help="Selecciona uno o más archivos CSV para graficar")
     #if uploaded_files is not None:
     if len(uploaded_files) > 0:
         options = st.multiselect(
