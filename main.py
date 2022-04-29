@@ -72,7 +72,9 @@ def force_plot(dataframe, options, filename):
 
     df = pd.DataFrame(variables)
     st.subheader(filename)
-    st.line_chart(df)
+    #st.line_chart(df)
+    c = alt.Chart(df)
+    st.altair_chart(c, use_container_width=True)
 
     data_aux = {
         "Máximo": trunc(data_max[0], 1),
