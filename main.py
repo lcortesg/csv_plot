@@ -73,7 +73,10 @@ def force_plot(dataframe, options, filename):
     df = pd.DataFrame(variables)
     st.subheader(filename)
     #st.line_chart(df)
-    c = alt.Chart(df)
+    c = alt.Chart(df).encode(
+        x="Tiempo",
+        y=alt.Y("Fuerza"),
+    ).interactive()
     st.altair_chart(c, use_container_width=True)
 
     data_aux = {
