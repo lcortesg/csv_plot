@@ -35,7 +35,7 @@ def main():
             dataframe = pd.read_csv(uploaded_file)
             force_plot(dataframe)
         else:
-            st.write("Nico! El archivo tiene que ser un CSV!")
+            st.write("Nico! El archivo tiene que ser un CSV! >:(")
 
 
 @st.cache
