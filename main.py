@@ -53,9 +53,7 @@ def force_plot(dataframe, options, filename):
     data_max = [np.max(data)] * len(data)
     data_avg = [np.average(data)] * len(data)
     data_std = [np.std(data)] * len(data)
-
     
-
     variables = {
         "Fuerza": data,
         f"Máximo: {trunc(data_max[0],1)}": data_max,
@@ -72,12 +70,7 @@ def force_plot(dataframe, options, filename):
 
     df = pd.DataFrame(variables)
     st.subheader(filename)
-    #st.line_chart(df)
-    c = alt.Chart(df).encode(
-        x="Tiempo",
-        y=alt.Y("Fuerza"),
-    ).interactive()
-    st.altair_chart(c, use_container_width=True)
+    st.line_chart(df)
 
     data_aux = {
         "Máximo": trunc(data_max[0], 1),
