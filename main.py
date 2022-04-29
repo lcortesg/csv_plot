@@ -26,7 +26,7 @@ def main():
         for uploaded_file in uploaded_files:
             if uploaded_file.name.split(".")[-1] == "csv":
                 dataframe = pd.read_csv(uploaded_file)
-                force_plot(dataframe, options)
+                force_plot(dataframe, options, uploaded_file.name)
             else:
                 st.write("Nico! El archivo tiene que ser un CSV! >:(")
 
@@ -45,7 +45,7 @@ def trunc(values, decs=0):
     return np.trunc(values * 10**decs) / (10**decs)
 
 
-def force_plot(dataframe, options):
+def force_plot(dataframe, options, filename):
     dataframe.rename(columns={"Unnamed: 0": "Tiempo", "0": "Fuerza"}, inplace=True)
     data = dataframe["Fuerza"]
 
@@ -70,6 +70,7 @@ def force_plot(dataframe, options):
         del variables[f"STD: {trunc(data_std[0],1)}"]
 
     df = pd.DataFrame(variables)
+    st.header(filename)
     st.line_chart(df)
 
     data_aux = {
