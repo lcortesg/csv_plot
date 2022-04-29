@@ -16,13 +16,14 @@ def main():
 
     st.title("CSV Plot")
 
-    uploaded_file = st.file_uploader("Hola Nico! elige un archivo CSV")
-    if uploaded_file is not None:
-        if uploaded_file.name.split(".")[-1] == "csv":
-            dataframe = pd.read_csv(uploaded_file)
-            force_plot(dataframe)
-        else:
-            st.write("Nico! El archivo tiene que ser un CSV! >:(")
+    uploaded_files = st.file_uploader("Hola Nico! elige un archivo CSV", accept_multiple_files=True)
+    if uploaded_files is not None:
+        for uploaded_file in uploaded_files:
+            if uploaded_file.name.split(".")[-1] == "csv":
+                dataframe = pd.read_csv(uploaded_file)
+                force_plot(dataframe)
+            else:
+                st.write("Nico! El archivo tiene que ser un CSV! >:(")
 
 
 @st.cache
