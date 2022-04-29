@@ -70,7 +70,7 @@ def force_plot(dataframe, options, filename):
         del variables[f"STD: {trunc(data_std[0],1)}"]
 
     df = pd.DataFrame(variables)
-    st.header(filename)
+    st.subheader(filename)
     st.line_chart(df)
 
     data_aux = {
