@@ -18,7 +18,7 @@ def main():
 
     uploaded_files = st.file_uploader("Hola Nico! elige un archivo CSV", accept_multiple_files=True)
     if uploaded_files is not None:
-        st.write(uploaded_files)
+        st.write(uploaded_files is not None)
         options = st.multiselect(
             "¿Que quieres graficar?",
             ["Máximo", "Valor Medio", "Desviación Estándar"],
