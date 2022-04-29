@@ -17,8 +17,8 @@ def main():
     st.title("CSV Plot")
 
     uploaded_files = st.file_uploader("Hola Nico! elige un archivo CSV", accept_multiple_files=True)
-    if uploaded_files is not None:
-        st.write(uploaded_files)
+    #if uploaded_files is not None:
+    if len(uploaded_files) > 0:
         options = st.multiselect(
             "¿Que quieres graficar?",
             ["Máximo", "Valor Medio", "Desviación Estándar"],
