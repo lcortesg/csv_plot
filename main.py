@@ -18,10 +18,15 @@ def main():
 
     uploaded_files = st.file_uploader("Hola Nico! elige un archivo CSV", accept_multiple_files=True)
     if uploaded_files is not None:
+        options = st.multiselect(
+            "¿Que quieres graficar?",
+            ["Máximo", "Valor Medio", "Desviación Estándar"],
+            ["Máximo", "Valor Medio"],
+        )
         for uploaded_file in uploaded_files:
             if uploaded_file.name.split(".")[-1] == "csv":
                 dataframe = pd.read_csv(uploaded_file)
-                force_plot(dataframe)
+                force_plot(dataframe, options)
             else:
                 st.write("Nico! El archivo tiene que ser un CSV! >:(")
 
@@ -40,7 +45,7 @@ def trunc(values, decs=0):
     return np.trunc(values * 10**decs) / (10**decs)
 
 
-def force_plot(dataframe):
+def force_plot(dataframe, options):
     dataframe.rename(columns={"Unnamed: 0": "Tiempo", "0": "Fuerza"}, inplace=True)
     data = dataframe["Fuerza"]
 
@@ -48,11 +53,7 @@ def force_plot(dataframe):
     data_avg = [np.average(data)] * len(data)
     data_std = [np.std(data)] * len(data)
 
-    options = st.multiselect(
-        "¿Que quieres graficar?",
-        ["Máximo", "Valor Medio", "Desviación Estándar"],
-        ["Máximo", "Valor Medio"],
-    )
+    
 
     variables = {
         "Fuerza": data,
