@@ -16,8 +16,12 @@ def main():
 
     st.title("CSV Plot")
 
-    uploaded_files = st.file_uploader("Hola Nico! elige un archivo CSV", accept_multiple_files=True, help="Selecciona uno o más archivos CSV para graficar")
-    #if uploaded_files is not None:
+    uploaded_files = st.file_uploader(
+        "Hola Nico! elige un archivo CSV",
+        accept_multiple_files=True,
+        help="Selecciona uno o más archivos CSV para graficar",
+    )
+    # if uploaded_files is not None:
     if len(uploaded_files) > 0:
         options = st.multiselect(
             "¿Que quieres graficar?",
@@ -53,7 +57,7 @@ def force_plot(dataframe, options, filename):
     data_max = [np.max(data)] * len(data)
     data_avg = [np.average(data)] * len(data)
     data_std = [np.std(data)] * len(data)
-    
+
     variables = {
         "Fuerza": data,
         f"Máximo: {trunc(data_max[0],1)}": data_max,
