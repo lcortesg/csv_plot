@@ -14,46 +14,18 @@ def main():
         layout="wide",
     )
 
-    option = st.sidebar.selectbox("Hola Nico! ¿Que quieres hacer?", ("Plot", "Split"))
+    option = st.sidebar.selectbox(
+        "Hola Nico! ¿Que quieres hacer?", ("Plot", "Split", "Merge")
+    )
 
     if option == "Plot":
-        st.title("CSV Plot")
-
-        uploaded_files = st.file_uploader(
-            "Hola Nico! elige un archivo CSV para graficar",
-            accept_multiple_files=True,
-            help="Selecciona uno o más archivos CSV para graficar",
-        )
-
-        if len(uploaded_files) > 0:
-            options = st.multiselect(
-                "¿Que quieres graficar?",
-                ["Máximo", "Valor Medio", "Desviación Estándar"],
-                ["Máximo", "Valor Medio"],
-            )
-            for uploaded_file in uploaded_files:
-                if uploaded_file.name.split(".")[-1] == "csv":
-                    dataframe = pd.read_csv(uploaded_file)
-                    csv_plot(dataframe, options, uploaded_file.name)
-                else:
-                    st.caption("Nico! El archivo tiene que ser un CSV! >:(")
+        csv_plot()
 
     if option == "Split":
-        st.title("CSV Split")
+        csv_split()
 
-        uploaded_files = st.file_uploader(
-            "Hola Nico! elige un archivo CSV para dividir",
-            accept_multiple_files=True,
-            help="Selecciona uno o más archivos CSV para dividir",
-        )
-
-        if len(uploaded_files) > 0:
-            for uploaded_file in uploaded_files:
-                if uploaded_file.name.split(".")[-1] == "csv":
-                    dataframe = pd.read_csv(uploaded_file)
-                    csv_split(dataframe, uploaded_file.name)
-                else:
-                    st.caption("Nico! El archivo tiene que ser un CSV! >:(")
+    if option == "Merge":
+        csv_merge()
 
 
 @st.cache
@@ -70,57 +42,132 @@ def trunc(values, decs=0):
     return np.trunc(values * 10**decs) / (10**decs)
 
 
-def csv_split(dataframe, filename):
-    st.subheader(filename)
-    parts = int(len(dataframe["0"]) / 3138)
-    for i in range(parts):
-        start = 3138 * i + i
-        stop = 3138 * (i + 1)
-        data = dataframe["0"][start:stop]
-        df = pd.DataFrame(data)
-        csv = df.to_csv()
+def csv_all(uploaded_files):
+    all_csv = False
+    for uploaded_file in uploaded_files:
+        if uploaded_file.name.split(".")[-1] == "csv":
+            all_csv = True
+        else:
+            all_csv = False
+            st.caption("Nico! Todos los archivos tienen que ser CSV! >:(")
+    if all_csv:
+        return True
+    else:
+        return False
 
-        #name = st.text_input(f'Nombre del archivo {i+1} a descargar', f'{filename}_{i+1}')
-        name = f'{filename.split(".")[0]}_{i+1}'
-        st.download_button(
-            label=f"Descarga CSV parte {i+1}",
-            data=csv,
-            file_name=name,
-            mime="text/csv",
+
+def csv_merge():
+    st.title("CSV Merge")
+
+    uploaded_files = st.file_uploader(
+        "Hola Nico! elige un archivo CSV para mezclar",
+        accept_multiple_files=True,
+        help="Selecciona uno o más archivos CSV para mezclar",
+    )
+
+    if len(uploaded_files) > 1:
+        if csv_all(uploaded_files):
+            df = pd.concat(map(pd.read_csv, uploaded_files), ignore_index=True)
+            csv_data = df.to_csv()
+            csv_name = ""
+            for uploaded_file in uploaded_files:
+                csv_name = csv_name + "+" + uploaded_file.name.split(".")[0]
+            csv_name = csv_name[1:-1]
+            st.subheader(csv_name + ".csv")
+            st.download_button(
+                label=f"Descargar CSV",
+                data=csv_data,
+                file_name=csv_name,
+                mime="text/csv",
+            )
+    return 0
+
+
+def csv_split(length=3138):
+    st.title("CSV Split")
+
+    uploaded_files = st.file_uploader(
+        "Hola Nico! elige un archivo CSV para dividir",
+        accept_multiple_files=True,
+        help="Selecciona uno o más archivos CSV para dividir",
+    )
+
+    if len(uploaded_files) > 0:
+        if csv_all(uploaded_files):
+            for uploaded_file in uploaded_files:
+                filename = uploaded_file.name
+                dataframe = pd.read_csv(uploaded_file)
+                parts = int(len(dataframe["0"]) / length)
+                st.subheader(filename)
+                for i in range(parts):
+                    start = length * i + i
+                    stop = length * (i + 1)
+                    data = dataframe["0"][start:stop]
+                    df = pd.DataFrame(data)
+                    csv_data = df.to_csv()
+                    csv_name = f'{filename.split(".")[0]}_{i+1}'
+                    st.download_button(
+                        label=f"Descargar CSV parte {i+1}",
+                        data=csv_data,
+                        file_name=csv_name,
+                        mime="text/csv",
+                    )
+    return 0
+
+
+def csv_plot():
+    st.title("CSV Plot")
+
+    uploaded_files = st.file_uploader(
+        "Hola Nico! elige un archivo CSV para graficar",
+        accept_multiple_files=True,
+        help="Selecciona uno o más archivos CSV para graficar",
+    )
+
+    if len(uploaded_files) > 0:
+        options = st.multiselect(
+            "¿Que quieres graficar?",
+            ["Máximo", "Valor Medio", "Desviación Estándar"],
+            ["Máximo", "Valor Medio"],
         )
+        if csv_all(uploaded_files):
+            for uploaded_file in uploaded_files:
+                filename = uploaded_file.name
+                dataframe = pd.read_csv(uploaded_file)
+                dataframe.rename(
+                    columns={"Unnamed: 0": "Tiempo", "0": "Fuerza"}, inplace=True
+                )
+                data = dataframe["Fuerza"]
+                data_max = [np.max(data)] * len(data)
+                data_avg = [np.average(data)] * len(data)
+                data_std = [np.std(data)] * len(data)
 
-def csv_plot(dataframe, options, filename):
-    dataframe.rename(columns={"Unnamed: 0": "Tiempo", "0": "Fuerza"}, inplace=True)
-    data = dataframe["Fuerza"]
+                variables = {
+                    "Fuerza": data,
+                    f"Máximo: {trunc(data_max[0],1)}": data_max,
+                    f"Valor Medio: {trunc(data_avg[0],1)}": data_avg,
+                    f"STD: {trunc(data_std[0],1)}": data_std,
+                }
 
-    data_max = [np.max(data)] * len(data)
-    data_avg = [np.average(data)] * len(data)
-    data_std = [np.std(data)] * len(data)
+                if "Máximo" not in options:
+                    del variables[f"Máximo: {trunc(data_max[0],1)}"]
+                if "Valor Medio" not in options:
+                    del variables[f"Valor Medio: {trunc(data_avg[0],1)}"]
+                if "Desviación Estándar" not in options:
+                    del variables[f"STD: {trunc(data_std[0],1)}"]
 
-    variables = {
-        "Fuerza": data,
-        f"Máximo: {trunc(data_max[0],1)}": data_max,
-        f"Valor Medio: {trunc(data_avg[0],1)}": data_avg,
-        f"STD: {trunc(data_std[0],1)}": data_std,
-    }
+                df = pd.DataFrame(variables)
+                st.subheader(filename)
+                st.line_chart(df)
 
-    if "Máximo" not in options:
-        del variables[f"Máximo: {trunc(data_max[0],1)}"]
-    if "Valor Medio" not in options:
-        del variables[f"Valor Medio: {trunc(data_avg[0],1)}"]
-    if "Desviación Estándar" not in options:
-        del variables[f"STD: {trunc(data_std[0],1)}"]
+                data_aux = {
+                    "Máximo": trunc(data_max[0], 1),
+                    "Valor Medio": trunc(data_avg[0], 1),
+                    "Desviación Estándar": trunc(data_std[0], 1),
+                }
 
-    df = pd.DataFrame(variables)
-    st.subheader(filename)
-    st.line_chart(df)
-
-    data_aux = {
-        "Máximo": trunc(data_max[0], 1),
-        "Valor Medio": trunc(data_avg[0], 1),
-        "Desviación Estándar": trunc(data_std[0], 1),
-    }
-    st.write(data_aux)
+                st.write(data_aux)
+    return 0
 
 
 if __name__ == "__main__":
