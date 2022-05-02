@@ -60,7 +60,7 @@ def csv_merge():
     st.title("CSV Merge")
 
     uploaded_files = st.file_uploader(
-        "Hola Nico! elige un archivo CSV para mezclar",
+        "Hola Nico! elige los archivos CSV para mezclar",
         accept_multiple_files=True,
         help="Selecciona uno o más archivos CSV para mezclar",
     )
@@ -87,7 +87,7 @@ def csv_split(length=3138):
     st.title("CSV Split")
 
     uploaded_files = st.file_uploader(
-        "Hola Nico! elige un archivo CSV para dividir",
+        "Hola Nico! elige los archivos CSV para dividir",
         accept_multiple_files=True,
         help="Selecciona uno o más archivos CSV para dividir",
     )
@@ -119,7 +119,7 @@ def csv_plot():
     st.title("CSV Plot")
 
     uploaded_files = st.file_uploader(
-        "Hola Nico! elige un archivo CSV para graficar",
+        "Hola Nico! elige los archivos CSV para graficar",
         accept_multiple_files=True,
         help="Selecciona uno o más archivos CSV para graficar",
     )
