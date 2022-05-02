@@ -14,26 +14,46 @@ def main():
         layout="wide",
     )
 
-    st.title("CSV Plot")
+    option = st.sidebar.selectbox("Hola Nico! ¿Que quieres hacer?", ("Plot", "Split"))
 
-    uploaded_files = st.file_uploader(
-        "Hola Nico! elige un archivo CSV",
-        accept_multiple_files=True,
-        help="Selecciona uno o más archivos CSV para graficar",
-    )
-    # if uploaded_files is not None:
-    if len(uploaded_files) > 0:
-        options = st.multiselect(
-            "¿Que quieres graficar?",
-            ["Máximo", "Valor Medio", "Desviación Estándar"],
-            ["Máximo", "Valor Medio"],
+    if option == "Plot":
+        st.title("CSV Plot")
+
+        uploaded_files = st.file_uploader(
+            "Hola Nico! elige un archivo CSV para graficar",
+            accept_multiple_files=True,
+            help="Selecciona uno o más archivos CSV para graficar",
         )
-        for uploaded_file in uploaded_files:
-            if uploaded_file.name.split(".")[-1] == "csv":
-                dataframe = pd.read_csv(uploaded_file)
-                force_plot(dataframe, options, uploaded_file.name)
-            else:
-                st.caption("Nico! El archivo tiene que ser un CSV! >:(")
+
+        if len(uploaded_files) > 0:
+            options = st.multiselect(
+                "¿Que quieres graficar?",
+                ["Máximo", "Valor Medio", "Desviación Estándar"],
+                ["Máximo", "Valor Medio"],
+            )
+            for uploaded_file in uploaded_files:
+                if uploaded_file.name.split(".")[-1] == "csv":
+                    dataframe = pd.read_csv(uploaded_file)
+                    csv_plot(dataframe, options, uploaded_file.name)
+                else:
+                    st.caption("Nico! El archivo tiene que ser un CSV! >:(")
+
+    if option == "Split":
+        st.title("CSV Split")
+
+        uploaded_files = st.file_uploader(
+            "Hola Nico! elige un archivo CSV para dividir",
+            accept_multiple_files=True,
+            help="Selecciona uno o más archivos CSV para dividir",
+        )
+
+        if len(uploaded_files) > 0:
+            for uploaded_file in uploaded_files:
+                if uploaded_file.name.split(".")[-1] == "csv":
+                    dataframe = pd.read_csv(uploaded_file)
+                    csv_split(dataframe, uploaded_file.name)
+                else:
+                    st.caption("Nico! El archivo tiene que ser un CSV! >:(")
 
 
 @st.cache
@@ -50,7 +70,26 @@ def trunc(values, decs=0):
     return np.trunc(values * 10**decs) / (10**decs)
 
 
-def force_plot(dataframe, options, filename):
+def csv_split(dataframe, filename):
+    st.subheader(filename)
+    parts = int(len(dataframe["0"]) / 3138)
+    for i in range(parts):
+        start = 3138 * i + i
+        stop = 3138 * (i + 1)
+        data = dataframe["0"][start:stop]
+        df = pd.DataFrame(data)
+        csv = df.to_csv()
+
+        #name = st.text_input(f'Nombre del archivo {i+1} a descargar', f'{filename}_{i+1}')
+        name = f'{filename.split(".")[0]}_{i+1}'
+        st.download_button(
+            label=f"Descarga CSV parte {i+1}",
+            data=csv,
+            file_name=name,
+            mime="text/csv",
+        )
+
+def csv_plot(dataframe, options, filename):
     dataframe.rename(columns={"Unnamed: 0": "Tiempo", "0": "Fuerza"}, inplace=True)
     data = dataframe["Fuerza"]
 
