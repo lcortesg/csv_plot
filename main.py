@@ -77,7 +77,7 @@ def csv_merge():
             st.download_button(
                 label=f"Descargar CSV",
                 data=csv_data,
-                file_name=csv_name,
+                file_name=csv_name + ".csv",
                 mime="text/csv",
             )
     return 0
@@ -109,7 +109,7 @@ def csv_split(length=3138):
                     st.download_button(
                         label=f"Descargar CSV parte {i+1}",
                         data=csv_data,
-                        file_name=csv_name,
+                        file_name=csv_name + ".csv",
                         mime="text/csv",
                     )
     return 0
