@@ -200,7 +200,7 @@ def csv_convert():
                 filename = uploaded_file.name
                 file = open(filename, "r")
                 #for line in file:
-                st.write(file) 
+                st.write(file.read()) 
     return 0
 
 
