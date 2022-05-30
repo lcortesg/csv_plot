@@ -195,18 +195,12 @@ def csv_convert():
     )
 
     if len(uploaded_files) > 0:
-        options = st.multiselect(
-            "¿Que quieres graficar?",
-            ["Máximo", "Valor Medio", "Desviación Estándar"],
-            ["Máximo", "Valor Medio"],
-        )
-        
         if txt_all(uploaded_files):
             for uploaded_file in uploaded_files:
                 filename = uploaded_file.name
                 file = open(filename, "r")
-                for line in file:
-                    st.write(line) 
+                #for line in file:
+                st.write(file) 
     return 0
 
 
