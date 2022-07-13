@@ -15,7 +15,7 @@ def main():
     )
 
     option = st.sidebar.selectbox(
-        "Hola Nico! ¿Que quieres hacer?", ("Plot", "Split", "Merge")
+        "Hola Nico! ¿Que quieres hacer?", ("Plot", "Split", "Merge", "Convert")
     )
 
     if option == "Plot":
@@ -26,6 +26,9 @@ def main():
 
     if option == "Merge":
         csv_merge()
+    
+    if option == "Convert":
+        csv_convert()
 
 
 @st.cache
@@ -50,6 +53,19 @@ def csv_all(uploaded_files):
         else:
             all_csv = False
             st.caption("Nico! Todos los archivos tienen que ser CSV! >:(")
+    if all_csv:
+        return True
+    else:
+        return False
+    
+def txt_all(uploaded_files):
+    all_csv = False
+    for uploaded_file in uploaded_files:
+        if uploaded_file.name.split(".")[-1] == "txt":
+            all_csv = True
+        else:
+            all_csv = False
+            st.caption("Nico! Todos los archivos tienen que ser TXT! >:(")
     if all_csv:
         return True
     else:
@@ -167,6 +183,24 @@ def csv_plot():
                 }
 
                 st.write(data_aux)
+    return 0
+
+def csv_convert():
+    st.title("TXT Convert")
+
+    uploaded_files = st.file_uploader(
+        "Hola Nico! elige los archivos TXT para convertir",
+        accept_multiple_files=True,
+        help="Selecciona uno o más archivos TXT para convertir",
+    )
+
+    if len(uploaded_files) > 0:
+        if txt_all(uploaded_files):
+            for uploaded_file in uploaded_files:
+                filename = uploaded_file.name
+                file = open(filename, "r")
+                #for line in file:
+                st.write(file.read()) 
     return 0
 
 
