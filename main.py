@@ -154,9 +154,13 @@ def csv_plot():
                     columns={"Unnamed: 0": "Tiempo", "0": "Fuerza"}, inplace=True
                 )
                 data = dataframe["Fuerza"]
-                data_max = [np.max(data)] * len(data)
-                data_avg = [np.average(data)] * len(data)
-                data_std = [np.std(data)] * len(data)
+                data_nz = []
+                for value in data: 
+                    if abs(value) >= 1: data_nz.append(value)
+                
+                data_max = [np.max(data.quantile(0.99))] * len(data)
+                data_avg = [np.average(data_nz)] * len(data)
+                data_std = [np.std(data_nz)] * len(data)
 
                 variables = {
                     "Fuerza": data,
