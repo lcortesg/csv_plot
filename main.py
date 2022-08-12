@@ -39,6 +39,9 @@ def main():
 def main_page():
     st.markdown("# Página principal ✨")
     st.sidebar.markdown("# Página Principal ✨")
+    st.markdown("## Herramienta de manejo de archivos _CSV_ y _TXT_")
+    st.markdown("### Aquí podrás graficar, mezclar, dividir y convertir estos archivos")
+    st.markdown("La conversión de archivos TXT a CSV se encuentra en periodo de **prueba**")
 
 
 @st.cache
