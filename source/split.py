@@ -1,0 +1,54 @@
+"""
+@file     : CSV Splitter
+@brief   : Handles CSV file splitting.
+@date    : 2022/08/12
+@version : 1.0.0
+@author  : Lucas Cortés.
+@contact : lucas.cortes@lanek.cl
+@bug     : None.
+"""
+
+import pandas as pd
+import streamlit as st
+
+
+def csv_split(length=3138):
+
+    st.markdown("# CSV Split ⚡️")
+    st.sidebar.markdown("# CSV Split ⚡️")
+
+    uploaded_files = st.file_uploader(
+        "Hola Nicco! elige los archivos CSV para dividir",
+        type=["csv"],
+        accept_multiple_files=True,
+        help="Selecciona uno o más archivos CSV para dividir",
+    )
+
+    if len(uploaded_files) > 0:
+
+        for uploaded_file in uploaded_files:
+
+            filename = uploaded_file.name
+            dataframe = pd.read_csv(uploaded_file)
+            parts = int(len(dataframe["0"]) / length)
+            st.subheader(filename)
+
+            for i in range(parts):
+
+                start = length * i + i
+                stop = length * (i + 1)
+                data = dataframe["0"][start:stop]
+                df = pd.DataFrame(data)
+                csv_data = df.to_csv()
+                csv_name = f'{filename.split(".")[0]}_{i+1}'
+
+                st.download_button(
+                    label=f"Descargar CSV parte {i+1}",
+                    data=csv_data,
+                    file_name=csv_name + ".csv",
+                    mime="text/csv",
+                )
+
+        return True
+
+    return False
