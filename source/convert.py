@@ -9,7 +9,12 @@
 @bug     : None.
 """
 
+import io
+from io import BytesIO
+import csv
+import pandas as pd
 import streamlit as st
+from zipfile import ZipFile
 
 
 def csv_convert():
@@ -26,8 +31,9 @@ def csv_convert():
 
     if len(uploaded_files) > 0:
 
+        '''zipObj = ZipFile("sample.zip", "w")'''
+        
         for uploaded_file in uploaded_files:
-
             data = uploaded_file.read()
             name = uploaded_file.name
             format = name[-3:]
@@ -49,6 +55,37 @@ def csv_convert():
                 file_name=name.replace(format, "csv"),
                 mime="text/csv",
             )
+
+            if st.checkbox(f'Graficar {name.replace(format,"csv")}'):
+                buffer = io.StringIO(filetxt)
+                df = pd.read_csv(filepath_or_buffer = buffer)
+                keys = df.keys()
+                df = df.set_index('XY')
+                for key in keys:
+                    if "Unnamed" in key:
+                        df = df.drop(f'{key}', axis=1)
+                st.line_chart(df)
+
+            '''reader = csv.reader(filetxt)
+            parsed_csv = list(reader)
+
+            buffer = io.StringIO(filetxt)
+            buffer.to_csv(name.replace(format,"csv"), index=None)
+            zipObj.write(buffer.getvalue())'''
+        
+        
+        '''
+        zipObj.close()
+        ZipfileDotZip = "sample.zip"
+
+        with open(ZipfileDotZip, "rb") as f:
+            bytes = f.read()
+            b64 = base64.b64encode(bytes).decode()
+            href = f"<a href=\"data:file/zip;base64,{b64}\" download='{ZipfileDotZip}.zip'>\
+                Click last model weights\
+            </a>"
+        st.sidebar.markdown(href, unsafe_allow_html=True)
+        '''
 
         return True
 
