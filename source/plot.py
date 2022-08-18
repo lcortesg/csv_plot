@@ -31,9 +31,11 @@ def csv_plot():
 
     if len(uploaded_files) > 0:
 
+        all_options = ["Máximo", "Valor Medio", "Desviación Estándar", "Mediana", "Varianza"]
+
         options = st.multiselect(
             "¿Que quieres graficar?",
-            ["Máximo", "Valor Medio", "Desviación Estándar", "Mediana", "Varianza"],
+            all_options,
             ["Máximo", "Valor Medio"],
         )
 
@@ -44,6 +46,7 @@ def csv_plot():
             dataframe.rename(
                 columns={"Unnamed: 0": "Tiempo", "0": "Fuerza"}, inplace=True
             )
+            tiempo = dataframe["Tiempo"]
             fuerza = dataframe["Fuerza"]
             fuerza_nz = []
 
@@ -58,37 +61,28 @@ def csv_plot():
             data_med = np.round(np.median(fuerza_nz), 1)
 
             variables = {
+                "Tiempo": tiempo,
                 "Fuerza": fuerza,
-                f"Máximo: {data_max}": data_max,
-                f"Valor Medio: {data_mean}": data_mean,
-                f"STD: {data_std}": data_std,
-                f"Varianza: {data_var}": data_var,
-                f"Mediana: {data_med}": data_med,
+                f"Máximo": data_max,
+                f"Valor Medio": data_mean,
+                f"Desviación Estándar": data_std,
+                f"Varianza": data_var,
+                f"Mediana": data_med,
             }
 
-            if "Máximo" not in options:
-                del variables[f"Máximo: {data_max}"]
-            if "Valor Medio" not in options:
-                del variables[f"Valor Medio: {data_mean}"]
-            if "Desviación Estándar" not in options:
-                del variables[f"STD: {data_std}"]
-            if "Varianza" not in options:
-                del variables[f"Varianza: {data_var}"]
-            if "Mediana" not in options:
-                del variables[f"Mediana: {data_med}"]
-
             df = pd.DataFrame(variables)
+            df = df.set_index('Tiempo')
+
+            for option in all_options:
+                if option not in options:
+                    df = df.drop(f'{option}', axis=1)
+            
             st.subheader(filename)
             st.line_chart(df)
 
-            data_aux = {
-                f"Máximo:": data_max,
-                f"Valor Medio:": data_mean,
-                f"Desviación Estándar:": data_std,
-                f"Varianza:": data_var,
-                f"Mediana:": data_med,
-            }
-
+            data_aux = variables
+            del data_aux["Tiempo"]
+            del data_aux["Fuerza"]
             st.write(data_aux)
 
         return True
