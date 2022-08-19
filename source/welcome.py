@@ -4,7 +4,7 @@ import streamlit as st
 def welcome():
     st.markdown("# Página principal ✨")
     st.sidebar.markdown("# Página Principal ✨")
-    st.markdown("## Herramienta de manejo de archivos _CSV_ y _TXT_")
+    st.markdown("## Plataforma de procesamiento de archivos _CSV_ y _TXT_")
     st.markdown(
         "#### Aquí podrás graficar, mezclar, dividir y convertir estos archivos"
     )
