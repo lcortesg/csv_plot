@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-@file     : CSV Plotter
+@file    : CSV Plotter
 @brief   : Handles CSV file plotting.
 @date    : 2022/08/12
 @version : 1.0.0
@@ -19,8 +19,8 @@ def csv_plot():
     min_floor = 5
     percentile = 99.8
     quantile = percentile / 100
-    st.markdown("# CSV Plot 📈")
-    st.sidebar.markdown("# CSV Plot 📈")
+    st.markdown("# CSV Force Plot 📈")
+    st.sidebar.markdown("# CSV Force Plot 📈")
 
     uploaded_files = st.file_uploader(
         "Hola Nicco! elige los archivos CSV para graficar",

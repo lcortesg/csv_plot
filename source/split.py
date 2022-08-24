@@ -1,5 +1,5 @@
 """
-@file     : CSV Splitter
+@file    : CSV Splitter
 @brief   : Handles CSV file splitting.
 @date    : 2022/08/12
 @version : 1.0.0

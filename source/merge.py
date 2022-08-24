@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-@file     : CSV Merger
+@file    : CSV Merger
 @brief   : Handles CSV file merging.
 @date    : 2022/08/12
 @version : 1.0.0

@@ -16,6 +16,7 @@ from source.split import csv_split
 from source.merge import csv_merge
 from source.convert import csv_convert
 from source.welcome import welcome
+from source.audio import wav_plot
 
 
 def main():
@@ -34,6 +35,7 @@ def main():
         "Split": csv_split,
         "Merge": csv_merge,
         "Convert": csv_convert,
+        "Audio": wav_plot,
     }
 
     selected_function = st.sidebar.selectbox(
@@ -41,7 +43,7 @@ def main():
     )
 
     if functions[selected_function]():
-        st.markdown("#### ¡Proceso finalizado con éxito! 🥳🎉")
+        st.markdown("#### ¡Proceso finalizado con éxito! 🥳🎉🎊🎈")
 
 
 if __name__ == "__main__":

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-@file     : CSV Converter
+@file    : CSV Converter
 @brief   : Handles TXT to CSV file conversion.
 @date    : 2022/08/12
 @version : 1.0.0
