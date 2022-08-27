@@ -17,6 +17,7 @@ from source.merge import csv_merge
 from source.convert import csv_convert
 from source.welcome import welcome
 from source.audio import wav_plot
+from source.usach import usach_plot
 
 
 def main():
@@ -36,6 +37,7 @@ def main():
         "Merge": csv_merge,
         "Convert": csv_convert,
         "Audio": wav_plot,
+        "USACH": usach_plot,
     }
 
     selected_function = st.sidebar.selectbox(
