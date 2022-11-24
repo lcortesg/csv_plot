@@ -31,7 +31,7 @@ def merge_qtm():
     # st.sidebar.markdown("# TXT Convert ❄️")
 
     uploaded_files = st.file_uploader(
-        "Hola Estudiantes! elige los archivos TXT para convertir",
+        "Hola Estudiante! elige los archivos TXT para convertir",
         type=["txt"],
         accept_multiple_files=True,
         help="Selecciona uno o más archivos TXT para convertir",
