@@ -52,7 +52,7 @@ def merge_qtm():
             cast = p0
             side = p1 if len(p1) == 3 else p2
             part = p2 if len(p1) == 3 else p1
-            st.write(f"### {part}")
+            
             file = str(data, "utf-8").split("\n")
             file.pop(0)
             filetxt = ""
@@ -67,13 +67,15 @@ def merge_qtm():
                 filetxt = filetxt + ",".join(line) + "\n"
 
             format = name[-3:]
-            st.download_button(
-                label=f'Descargar {name.replace(format,"csv")}',
-                data=filetxt,
-                file_name=name.replace(format, "csv"),
-                mime="text/csv",
-                key=cont,
-            )
+            if plot_data:
+                st.write(f"### {part}")
+                st.download_button(
+                    label=f'Descargar {name.replace(format,"csv")}',
+                    data=filetxt,
+                    file_name=name.replace(format, "csv"),
+                    mime="text/csv",
+                    key=cont,
+                )
             cont = cont + 1
 
             
@@ -152,7 +154,7 @@ def compare(dfq, dfa):
     cutoff = st.slider("Seleccionar la frecuencia de corte", 4, 10, 6)
     order = st.slider("Selecciona el orden del filtro", 1, 8, 3)
 
-    parts = ["cadera", "tobillo", "rodilla"]
+    parts = ["cadera", "rodilla", "tobillo"]
 
     for part in parts:
         st.write(f"### {part}")
@@ -163,12 +165,14 @@ def compare(dfq, dfa):
             qtm = np.interp(
                 np.arange(0, len(qtm), samp / 120), np.arange(0, len(qtm)), qtm
             )
+        number = st.number_input(f'Inserte el desfase de {part}', min_value=-90, max_value=90, value=0, step=1, key=part)
+        abmac = [x - number for x in abma]
         if len(qtm) > len(abma):
-            shft = np.argmax(signal.correlate(qtm, abma)) - len(abma)
+            shft = np.argmax(signal.correlate(qtm, abmac)) - len(abmac)
         st.write(f"Shift: {shft}")
         qtmc = qtm[shft : shft + len(dfa[part])]
-        abmac = abma
-        errabs = abs(qtmc-abmac)
+        
+        errabs = np.absolute(np.subtract(qtmc,abmac))
         MSE = np.square(np.subtract(qtmc,abmac)).mean() 
         rmse = math.sqrt(MSE)
 
@@ -215,10 +219,6 @@ def compare(dfq, dfa):
 
         st.markdown(f"##### Tabla de resultados")
         st.write(errores)
-
-        #alignment = dtw(qtmc, abmac, keep_internals=True)
-        #st.write(alignment.distance)
-        
 
 
 def usach_plot():
