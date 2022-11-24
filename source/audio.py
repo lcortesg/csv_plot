@@ -16,7 +16,7 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 import pydub
-
+import math
 
 def wav_plot():
 
@@ -41,10 +41,12 @@ def wav_plot():
             st.audio(uploaded_file, format="audio/wav", start_time=0)
             
             if st.checkbox(f'Graficar {name}'):
-                y, sr = handle_uploaded_audio_file(uploaded_file)
-                df = pd.DataFrame(y, columns = [f'{name[:-4]}'])
-                st.line_chart(df)
-                st.write(f'Frecuencia de muestreo: {sr}')
+                y = handle_uploaded_audio_file(uploaded_file)
+                filename = f'{name[:-4]}'
+                df = pd.DataFrame(y)
+                #st.line_chart(df)
+                st.write(df)
+                #st.write(f'Frecuencia de muestreo: {sr}')
 
         return True
 
@@ -54,8 +56,22 @@ def wav_plot():
 def handle_uploaded_audio_file(uploaded_file):
     a = pydub.AudioSegment.from_wav(uploaded_file)
     #st.write(a.sample_width)
+    a = pydub.AudioSegment(
+        # raw audio data (bytes)
+        data=a,
+
+        # 2 byte (16 bit) samples
+        sample_width=2,
+
+        # 44.1 kHz frame rate
+        frame_rate=10000,
+
+        # stereo
+        channels=2
+    )
+
     samples = a.get_array_of_samples()
-    fp_arr = np.array(samples).T.astype(np.float32)
-    fp_arr /= np.iinfo(samples.typecode).max
+    #fp_arr = np.array(samples).T.astype(np.float32)
+    #fp_arr /= np.iinfo(samples.typecode).max
     #st.write(fp_arr.shape)
-    return samples, fp_arr.shape[0]
+    return samples#, fp_arr.shape[0]
