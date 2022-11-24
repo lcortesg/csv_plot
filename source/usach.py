@@ -27,9 +27,9 @@ def convert_df(df):
 
 
 def merge_qtm():
-    st.markdown("# TXT Convert ❄️")
-    # st.sidebar.markdown("# TXT Convert ❄️")
-
+    st.markdown("# Comparación QTM/ABMA ❄️")
+    st.sidebar.markdown("# Comparación QTM/ABMA ❄️")
+    st.markdown("## Datos QTM")
     uploaded_files = st.file_uploader(
         "Hola Estudiante! elige los archivos TXT para convertir",
         type=["txt"],
@@ -96,13 +96,15 @@ def merge_qtm():
         st.download_button(
             "Descargar CSV", csv, f"{cast}-{side}.csv", "text/csv", key="download-csv"
         )
-        return hamster, side
-
-    return False
+        return True, hamster, side
+        
+    else:
+        return False, False, False
 
 
 def load_abma(sideq):
     side = "LI" if sideq == "izq" else "LD"
+    st.markdown("## Datos ABMA")
     uploaded_file = st.file_uploader(
         "Hola Estudiante! elige el archivo CSV para comparar",
         type=["csv"],
@@ -122,9 +124,9 @@ def load_abma(sideq):
         dfa = pd.DataFrame(rinoceronte)
         dfa = dfa.dropna()
         dfa = dfa.set_index("frame")
-        return dfa
+        return True, dfa
     else:
-        return False
+        return False, False
    
 
 def plot(dfq, dfa):
@@ -200,18 +202,18 @@ def compare(dfq, dfa):
         }
 
         dft = pd.DataFrame(dft)
-        st.write(f"##### Gráficos de las señales")
+        st.markdown(f"##### Gráficos de las señales")
         st.line_chart(dft)
         
-        st.write(f"##### Correlación cruzada")
+        st.markdown(f"##### Correlación cruzada")
         st.line_chart(c)
 
         path = dtw.warping_path(qtmc, abmac)
         dtwvis.plot_warping(qtmc, abmac, path, filename="warp.png")
-        st.write(f"##### DTW warping path")
+        st.markdown(f"##### DTW warping path")
         st.image("warp.png", use_column_width=True)
 
-        st.write(f"##### Tabla de resultados")
+        st.markdown(f"##### Tabla de resultados")
         st.write(errores)
 
         #alignment = dtw(qtmc, abmac, keep_internals=True)
@@ -220,7 +222,9 @@ def compare(dfq, dfa):
 
 
 def usach_plot():
-    dfq, sideq = merge_qtm()
-    dfa = load_abma(sideq)
-    plot(dfq, dfa)
-    compare(dfq, dfa)
+    merged, dfq, sideq = merge_qtm()
+    if merged:
+        loaded, dfa = load_abma(sideq)
+        if loaded:
+            plot(dfq, dfa)
+            compare(dfq, dfa)
