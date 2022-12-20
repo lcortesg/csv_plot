@@ -46,9 +46,14 @@ def merge_qtm():
         for uploaded_file in uploaded_files:
             data = uploaded_file.read()
             name = uploaded_file.name
-            p0 = name.split(".")[0].split("_")[0]
-            p1 = name.split(".")[0].split("_")[1]
-            p2 = name.split(".")[0].split("_")[2]
+            try:
+                p0 = name.split(".")[0].split("_")[0]
+                p1 = name.split(".")[0].split("_")[1]
+                p2 = name.split(".")[0].split("_")[2]
+            except:
+                p0 = name.split(".")[0].split("-")[0]
+                p1 = name.split(".")[0].split("-")[1]
+                p2 = name.split(".")[0].split("-")[2]
             cast = p0
             side = p1 if len(p1) == 3 else p2
             part = p2 if len(p1) == 3 else p1
@@ -105,6 +110,7 @@ def merge_qtm():
 
 
 def load_abma(sideq):
+    
     side = "LI" if sideq == "izq" else "LD"
     st.markdown("## Datos ABMA")
     uploaded_file = st.file_uploader(
@@ -150,6 +156,7 @@ def butter_lowpass_filter(data, cutoff, fs, order):
 
 
 def compare(dfq, dfa):
+    inverse = False
     samp = st.selectbox("Selecciona la frecuencia de muestreo de QTM", (120, 100))
     cutoff = st.slider("Seleccionar la frecuencia de corte", 4, 10, 6)
     order = st.slider("Selecciona el orden del filtro", 1, 8, 3)
@@ -167,10 +174,40 @@ def compare(dfq, dfa):
             )
         number = st.number_input(f'Inserte el desfase de {part}', min_value=-90, max_value=90, value=0, step=1, key=part)
         abmac = [x - number for x in abma]
-        if len(qtm) > len(abma):
-            shft = np.argmax(signal.correlate(qtm, abmac)) - len(abmac)
-        st.write(f"Shift: {shft}")
-        qtmc = qtm[shft : shft + len(dfa[part])]
+        # st.write(f'len(qtm): {len(qtm)}')
+        # st.write(f'len(abma): {len(abma)}')
+        # if len(qtm) > len(abma):
+
+        shft = np.argmax(signal.correlate(qtm, abmac)) - len(abmac)
+        if shft < 0:
+            inverse = True
+            shft = np.argmax(signal.correlate(abmac, qtm)) - len(qtm)
+        # st.write(f"Shift: {shft}")
+        if not inverse:
+            # st.write("Not Inversed")
+            if shft + len(dfa[part]) < len(qtm):
+                qtmc = qtm[shft : shft + len(dfa[part])]
+            else:
+                qtmc = qtm[shft : len(qtm)]
+                abmac = abmac[0 : len(qtmc)]
+        if inverse:
+            # st.write("Inversed")
+            if shft + len(dfa[part]) < len(qtm):
+                qtmc = qtm[shft : len(qtm)]
+                abmac = abmac[0 : len(qtmc)]
+                
+            else:
+                abmac = abmac[shft : shft + len(dfa[part])]
+                qtmc = qtm[0: len(abmac)]
+        
+        # st.write(f'len(qtmc): {len(qtmc)}')
+        # st.write(f'len(abmac): {len(abmac)}')
+        # if len(abma) > len(qtm):
+        #     shft = np.argmax(signal.correlate(abmac, qtm)) - len(qtm)  
+        #     qtmc = qtm
+        #     abmac = abmac[shft : shft + len(dfa[part])]
+        
+        
         
         errabs = np.absolute(np.subtract(qtmc,abmac))
         MSE = np.square(np.subtract(qtmc,abmac)).mean() 
