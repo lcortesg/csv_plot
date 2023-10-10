@@ -124,11 +124,11 @@ def load_abma(sideq):
         df = pd.read_csv(uploaded_file)
         keys = df.keys()
         rinoceronte = {}
-        sign = 1
+        parts = ["cadera", "rodilla", "tobillo", "frame"]
         for key in keys:
-            if side == key.split()[-1] or "frame" in key:
-                sign = -1 if key.split()[0].lower() == "rodilla" else 1
-                rinoceronte[key.split()[0].lower()] = sign * df[key]
+            if key.split()[0].lower() in parts:
+                if side == key.split()[-1] or "frame" in key:
+                    rinoceronte[key.split()[0].lower()] =  df[key]
         dfa = pd.DataFrame(rinoceronte)
         dfa = dfa.dropna()
         dfa = dfa.set_index("frame")
@@ -141,7 +141,19 @@ def plot(dfq, dfa):
     st.write(f"## QTM")
     st.line_chart(dfq)
     st.write(f"## ABMA")
+    inv_hip = st.checkbox(f'¿Invertir Cadera?')
+    inv_knee = st.checkbox(f'¿Invertir Rodilla?')
+    inv_ankle = st.checkbox(f'¿invertir Tobillo?')
+
+    if inv_hip:
+        dfa["cadera"] = -dfa["cadera"]
+    if inv_knee:
+        dfa["rodilla"] = -dfa["rodilla"]
+    if inv_ankle:
+        dfa["tobillo"] = -dfa["tobillo"]
     st.line_chart(dfa)
+
+
 
 
 def butter_lowpass_filter(data, cutoff, fs, order):
