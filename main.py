@@ -19,17 +19,17 @@ from source.welcome import welcome
 from source.audio import wav_plot
 from source.usach import usach_plot
 
+im = Image.open("assets/logos/favicon.png")
+
+st.set_page_config(
+    page_title="CSV Handler",
+    page_icon=im,
+    layout="wide",
+)
+
 
 def main():
-
-    im = Image.open("assets/logos/favicon.png")
-
-    st.set_page_config(
-        page_title="CSV Handler",
-        page_icon=im,
-        layout="wide",
-    )
-
+    
     functions = {
         "Principal": welcome,
         "Plot": csv_plot,
