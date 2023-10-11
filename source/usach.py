@@ -21,7 +21,7 @@ from scipy.signal import butter, filtfilt
 from dtaidistance import dtw
 from dtaidistance import dtw_visualisation as dtwvis
 
-@st.experimental_memo
+@st.cache_data
 def convert_df(df):
     return df.to_csv(index=False).encode("utf-8")
 
