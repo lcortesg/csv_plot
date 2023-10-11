@@ -144,16 +144,26 @@ def plot(dfq, dfa):
     inv_hip = st.checkbox(f'¿Invertir Cadera?')
     inv_knee = st.checkbox(f'¿Invertir Rodilla?')
     inv_ankle = st.checkbox(f'¿invertir Tobillo?')
+    dfan = {}
+    values = st.slider(
+        'Select a range of values',
+        int(dfa.index[0]), int(dfa.index[-1]), (int(dfa.index[0]), int(dfa.index[-1])))
+    dfan["cadera"] = dfa["cadera"][values[0]:values[1]]
+    dfan["rodilla"] = dfa["rodilla"][values[0]:values[1]]
+    dfan["tobillo"] = dfa["tobillo"][values[0]:values[1]]
+    dfan["frame"] = dfa.index[values[0]-int(dfa.index[0]):values[1]-int(dfa.index[0]-1)]
 
     if inv_hip:
-        dfa["cadera"] = -dfa["cadera"]
+        dfan["cadera"] = -dfan["cadera"]
     if inv_knee:
-        dfa["rodilla"] = -dfa["rodilla"]
+        dfan["rodilla"] = -dfan["rodilla"]
     if inv_ankle:
-        dfa["tobillo"] = -dfa["tobillo"]
-    st.line_chart(dfa)
-
-
+        dfan["tobillo"] = -dfan["tobillo"]
+    dfan = pd.DataFrame(dfan)
+    dfan = dfan.set_index("frame")
+    st.line_chart(dfan)
+    
+    return dfan
 
 
 def butter_lowpass_filter(data, cutoff, fs, order):
@@ -169,9 +179,9 @@ def butter_lowpass_filter(data, cutoff, fs, order):
 
 def compare(dfq, dfa):
     inverse = False
-    samp = st.selectbox("Selecciona la frecuencia de muestreo de QTM", (120, 100))
+    samp = st.selectbox("Selecciona la frecuencia de muestreo de QTM", (100, 120))
     cutoff = st.slider("Seleccionar la frecuencia de corte", 4, 10, 6)
-    order = st.slider("Selecciona el orden del filtro", 1, 8, 3)
+    order = st.slider("Selecciona el orden del filtro", 1, 8, 1)
 
     parts = ["cadera", "rodilla", "tobillo"]
 
@@ -275,5 +285,5 @@ def usach_plot():
     if merged:
         loaded, dfa = load_abma(sideq)
         if loaded:
-            plot(dfq, dfa)
-            compare(dfq, dfa)
+            dfan = plot(dfq, dfa)
+            compare(dfq, dfan)
