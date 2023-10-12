@@ -2,8 +2,8 @@
 """
 @file    : CSV Converter
 @brief   : Handles TXT to CSV file conversion.
-@date    : 2022/08/12
-@version : 1.0.0
+@date    : 2023/10/12
+@version : 2.0.0
 @author  : Lucas Cortés.
 @contact : lucas.cortes@lanek.cl
 @bug     : None.
@@ -20,6 +20,15 @@ from scipy import signal
 from scipy.signal import butter, filtfilt
 from dtaidistance import dtw
 from dtaidistance import dtw_visualisation as dtwvis
+from scipy.spatial.distance import euclidean
+"""
+from fastdtw import fastdtw
+import matplotlib.pyplot as plt
+
+import matplotlib as mpl
+mpl.rcParams['figure.dpi'] = 300
+savefig_options = dict(format="png", dpi=300, bbox_inches="tight")
+"""
 
 @st.cache_data
 def convert_df(df):
@@ -148,9 +157,9 @@ def plot(dfq, dfa):
     values = st.slider(
         'Select a range of values',
         int(dfa.index[0]), int(dfa.index[-1]), (int(dfa.index[0]), int(dfa.index[-1])))
-    dfan["cadera"] = dfa["cadera"][values[0]:values[1]]
-    dfan["rodilla"] = dfa["rodilla"][values[0]:values[1]]
-    dfan["tobillo"] = dfa["tobillo"][values[0]:values[1]]
+    dfan["cadera"] = dfa["cadera"].loc[values[0]:values[1]]
+    dfan["rodilla"] = dfa["rodilla"].loc[values[0]:values[1]]
+    dfan["tobillo"] = dfa["tobillo"].loc[values[0]:values[1]]
     dfan["frame"] = dfa.index[values[0]-int(dfa.index[0]):values[1]-int(dfa.index[0]-1)]
 
     if inv_hip:
@@ -279,6 +288,33 @@ def compare(dfq, dfa):
         st.markdown(f"##### Tabla de resultados")
         st.write(errores)
 
+        """
+        tq = np.linspace(start=0, stop=len(qtmc)-1, num=len(qtmc))
+        ta = np.linspace(start=0, stop=len(abmac)-1, num=len(abmac))
+
+        xyq = list(zip(tq, qtmc))
+        xya = list(zip(ta, abmac))
+        x1 = np.array(xyq)
+        x2 = np.array(xya)
+
+        distance, warp_path = fastdtw(x1, x2, dist=euclidean)
+
+        fig, ax = plt.subplots(figsize=(16, 12))
+
+        # Remove the border and axes ticks
+        fig.patch.set_visible(False)
+        ax.axis('off')
+
+        for [map_x, map_y] in warp_path:
+            ax.plot([map_x, map_y], [x1[map_x], x2[map_y]], '-k')
+
+        ax.plot(x1, color='blue', marker='o', markersize=10, linewidth=5)
+        ax.plot(x2, color='red', marker='o', markersize=10, linewidth=5)
+        ax.tick_params(axis="both", which="major", labelsize=18)
+
+        fig.savefig("ex2_dtw_distance.png", **savefig_options)
+        """
+
 
 def usach_plot():
     merged, dfq, sideq = merge_qtm()
@@ -286,4 +322,5 @@ def usach_plot():
         loaded, dfa = load_abma(sideq)
         if loaded:
             dfan = plot(dfq, dfa)
-            compare(dfq, dfan)
+            if st.checkbox(f'¿Comparar datos?'):
+                compare(dfq, dfan)
