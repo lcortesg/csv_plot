@@ -137,18 +137,35 @@ def load_abma(sideq):
         for key in keys:
             if key.split()[0].lower() in parts:
                 if side == key.split()[-1] or "frame" in key:
-                    rinoceronte[key.split()[0].lower()] =  df[key]
+                    rinoceronte[key.split()[0].lower()] = df[key]
+
         dfa = pd.DataFrame(rinoceronte)
         dfa = dfa.dropna()
         dfa = dfa.set_index("frame")
+
+        for key in dfa:
+            dfa[key] = butter_lowpass_filter(data=dfa[key].tolist(), cutoff=6, fs=120, order=3)
+
         return True, dfa
     else:
         return False, False
    
 
 def plot(dfq, dfa):
+
     st.write(f"## QTM")
-    st.line_chart(dfq)
+    values = st.slider(
+        'Select a range of values',
+        int(dfq.index[0]), int(dfq.index[-1]), (int(dfq.index[0]), int(dfq.index[-1])))
+    dfqn = {}
+    dfqn["cadera"] = dfq["cadera"].loc[values[0]:values[1]]
+    dfqn["rodilla"] = dfq["rodilla"].loc[values[0]:values[1]]
+    dfqn["tobillo"] = dfq["tobillo"].loc[values[0]:values[1]]
+    dfqn["frame"] = dfq.index[values[0]-int(dfq.index[0]):values[1]-int(dfq.index[0]-1)]
+    dfqn = pd.DataFrame(dfqn)
+    dfqn = dfqn.set_index("frame")
+    st.line_chart(dfqn)
+
     st.write(f"## ABMA")
     inv_hip = st.checkbox(f'¿Invertir Cadera?')
     inv_knee = st.checkbox(f'¿Invertir Rodilla?')
@@ -161,7 +178,6 @@ def plot(dfq, dfa):
     dfan["rodilla"] = dfa["rodilla"].loc[values[0]:values[1]]
     dfan["tobillo"] = dfa["tobillo"].loc[values[0]:values[1]]
     dfan["frame"] = dfa.index[values[0]-int(dfa.index[0]):values[1]-int(dfa.index[0]-1)]
-
     if inv_hip:
         dfan["cadera"] = -dfan["cadera"]
     if inv_knee:
@@ -172,7 +188,7 @@ def plot(dfq, dfa):
     dfan = dfan.set_index("frame")
     st.line_chart(dfan)
     
-    return dfan
+    return dfan, dfqn
 
 
 def butter_lowpass_filter(data, cutoff, fs, order):
@@ -189,15 +205,15 @@ def butter_lowpass_filter(data, cutoff, fs, order):
 def compare(dfq, dfa):
     inverse = False
     samp = st.selectbox("Selecciona la frecuencia de muestreo de QTM", (100, 120))
-    cutoff = st.slider("Seleccionar la frecuencia de corte", 4, 10, 6)
-    order = st.slider("Selecciona el orden del filtro", 1, 8, 1)
+    #cutoff = st.slider("Seleccionar la frecuencia de corte", 4, 10, 6)
+    #order = st.slider("Selecciona el orden del filtro", 1, 8, 1)
 
     parts = ["cadera", "rodilla", "tobillo"]
 
     for part in parts:
         st.write(f"### {part}")
-        abma_raw = dfa[part].to_list()
-        abma = butter_lowpass_filter(data=abma_raw, cutoff=cutoff, fs=120, order=order)
+        abma = dfa[part].to_list()
+        #abma = butter_lowpass_filter(data=abma_raw, cutoff=cutoff, fs=120, order=order)
         qtm = dfq[part].to_list()
         if samp != 120:
             qtm = np.interp(
@@ -321,6 +337,6 @@ def usach_plot():
     if merged:
         loaded, dfa = load_abma(sideq)
         if loaded:
-            dfan = plot(dfq, dfa)
+            dfan, dfqn = plot(dfq, dfa)
             if st.checkbox(f'¿Comparar datos?'):
-                compare(dfq, dfan)
+                compare(dfqn, dfan)
