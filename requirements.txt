@@ -8,4 +8,5 @@ scipy
 pydub
 black
 dtw-python
-dtaidistance
+dtaidistance==2.0.0
+fastdtw

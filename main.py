@@ -29,7 +29,7 @@ st.set_page_config(
 
 
 def main():
-    
+
     functions = {
         "Principal": welcome,
         "Plot": csv_plot,
