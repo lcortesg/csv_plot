@@ -333,8 +333,8 @@ def compare(dfq, dfa):
             "Spearman's p": scoef[1],
             "Kendall's correlation": kcoef[0],
             "Kendall's tau": kcoef[1],
-            "Qualisys Shapiro": f"{shapiro(qtmc)}",
-            "ABMA Shapiro": f"{shapiro(abmac)}",
+            #"Qualisys Shapiro": f"{shapiro(qtmc)}",
+            #"ABMA Shapiro": f"{shapiro(abmac)}",
             #"Cohen's d": cohen,
         }
 
