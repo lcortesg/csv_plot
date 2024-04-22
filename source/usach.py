@@ -38,8 +38,8 @@ def convert_df(df):
 
 
 def merge_qtm():
-    st.markdown("# Comparación QTM/ABMA ❄️")
-    st.sidebar.markdown("# Comparación QTM/ABMA ❄️")
+    st.markdown("# Comparación QTM/ABMA 🏃‍♂️‍➡️️")
+    st.sidebar.markdown("# Comparación QTM/ABMA 🏃‍♂️‍➡️️")
     st.markdown("## Datos QTM")
     uploaded_files = st.file_uploader(
         "Elige los archivos TXT para convertir",
