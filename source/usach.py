@@ -12,12 +12,19 @@
 import io
 import csv
 import math
+import matplotlib.pyplot as plt
 import numpy as np
 import numpy.ma as ma
 import pandas as pd
+from numpy import mean
+from numpy import var
+from math import sqrt
 import streamlit as st
 from io import BytesIO
 import scipy.stats
+from scipy.stats import kstest
+from scipy.stats import shapiro 
+from scipy.stats import lognorm
 from scipy import signal
 from scipy.signal import butter, filtfilt
 from dtaidistance import dtw
@@ -35,6 +42,19 @@ savefig_options = dict(format="png", dpi=300, bbox_inches="tight")
 @st.cache_data
 def convert_df(df):
     return df.to_csv(index=False).encode("utf-8")
+
+# function to calculate Cohen's d for independent samples
+def cohend(d1, d2):
+    # calculate the size of samples
+    n1, n2 = len(d1), len(d2)
+    # calculate the variance of the samples
+    s1, s2 = var(d1, ddof=1), var(d2, ddof=1)
+    # calculate the pooled standard deviation
+    s = sqrt(((n1 - 1) * s1 + (n2 - 1) * s2) / (n1 + n2 - 2))
+    # calculate the means of the samples
+    u1, u2 = mean(d1), mean(d2)
+    # calculate the effect size
+    return (u1 - u2) / s
 
 
 def merge_qtm():
@@ -125,7 +145,7 @@ def load_abma(sideq):
     side = "LI" if sideq == "izq" else "LD"
     st.markdown("## Datos ABMA")
     uploaded_file = st.file_uploader(
-        "Hola Estudiante! elige el archivo CSV para comparar",
+        "Elige el archivo CSV para comparar",
         type=["csv"],
         accept_multiple_files=False,
         help="Selecciona un archivo csv para comparar",
@@ -222,16 +242,33 @@ def compare(dfq, dfa):
                 np.arange(0, len(qtm), samp / 120), np.arange(0, len(qtm)), qtm
             )
         number = st.number_input(f'Inserte el desfase de {part}', min_value=-90, max_value=90, value=0, step=1, key=part)
-        abmac = [x - number for x in abma]
+        abmac = [x + number for x in abma]
         # st.write(f'len(qtm): {len(qtm)}')
         # st.write(f'len(abma): {len(abma)}')
         # if len(qtm) > len(abma):
 
         shft = np.argmax(signal.correlate(qtm, abmac)) - len(abmac)
+        #st.write(f"Shift: {shft}")
         if shft < 0:
             inverse = True
             shft = np.argmax(signal.correlate(abmac, qtm)) - len(qtm)
-        # st.write(f"Shift: {shft}")
+            #st.write(f"Shift: {shft}")
+
+        if inverse:
+            # st.write("Inversed")
+            if shft + len(dfa[part]) < len(qtm):
+                #st.write("case 1")
+                fix = len(qtm)-len(dfa[part])-shft
+                qtmc = qtm[shft+fix : len(qtm)]
+                abmac = abmac[0 : len(qtmc)]
+                #st.write(len(qtmc))
+                #st.write(len(abmac))
+
+            else:
+                #st.write("case 2")
+                abmac = abmac[shft : shft + len(dfa[part])]
+                qtmc = qtm[0: len(abmac)]
+
         if not inverse:
             # st.write("Not Inversed")
             if shft + len(dfa[part]) < len(qtm):
@@ -239,15 +276,7 @@ def compare(dfq, dfa):
             else:
                 qtmc = qtm[shft : len(qtm)]
                 abmac = abmac[0 : len(qtmc)]
-        if inverse:
-            # st.write("Inversed")
-            if shft + len(dfa[part]) < len(qtm):
-                qtmc = qtm[shft : len(qtm)]
-                abmac = abmac[0 : len(qtmc)]
-
-            else:
-                abmac = abmac[shft : shft + len(dfa[part])]
-                qtmc = qtm[0: len(abmac)]
+        
 
         # st.write(f'len(qtmc): {len(qtmc)}')
         # st.write(f'len(abmac): {len(abmac)}')
@@ -283,25 +312,30 @@ def compare(dfq, dfa):
             # f"ABMA_RAW - {part}": abma_raw,
         }
 
+
         a = ma.masked_invalid(qtmc)
         b = ma.masked_invalid(abmac)
         msk = (~a.mask & ~b.mask)
         pcoef = scipy.stats.pearsonr(a[msk], b[msk])
         scoef = scipy.stats.spearmanr(a[msk], b[msk])
         kcoef = scipy.stats.kendalltau(a[msk], b[msk])
+        cohen = cohend(qtmc, abmac)
         errores ={
-            "Error máximo absoluto": max(errabs),
-            "Error mínimo absoluto": min(errabs),
-            "Error medio absoluto": errabs.mean(),
-            "Error cuadrático medio": rmse,
-            "Correlación cruzada máxima": max(c),
-            "Distancia promedio DTW": distance/len(abmac),
-            "Pearson's": pcoef[0],
-            "Pearson's p-value": pcoef[1],
-            "Spearman's": scoef[0],
-            "Spearman's p-value": scoef[1],
-            "Kendall's": kcoef[0],
-            "Kendall's p-value": kcoef[1],
+            "Max ABSE": max(errabs),
+            "Min ABSE": min(errabs),
+            "Mean ABSE": errabs.mean(),
+            "Mean RMSE": rmse,
+            "Max X-Corr": max(c),
+            "Mean DTW": distance/len(abmac),
+            #"Pearson's correlation": pcoef[0],
+            #"Pearson's p": pcoef[1],
+            "Spearman's correlation": scoef[0],
+            "Spearman's p": scoef[1],
+            "Kendall's correlation": kcoef[0],
+            "Kendall's tau": kcoef[1],
+            "Qualisys Shapiro": f"{shapiro(qtmc)}",
+            "ABMA Shapiro": f"{shapiro(abmac)}",
+            #"Cohen's d": cohen,
         }
 
         dft = pd.DataFrame(dft)
@@ -311,11 +345,10 @@ def compare(dfq, dfa):
         st.markdown(f"##### Correlación cruzada")
         st.line_chart(c)
 
+        st.markdown(f"##### DTW warping path")
         path = dtw.warping_path(qtmc, abmac)
         figure, axes = dtwvis.plot_warping(qtmc, abmac, path)
         #dtwvis.plot_warping(qtmc, abmac, path, filename="warp.png")
-
-        st.markdown(f"##### DTW warping path")
         st.pyplot(figure)
         #st.image("warp.png", use_column_width=True)
 
@@ -356,5 +389,6 @@ def usach_plot():
         loaded, dfa = load_abma(sideq)
         if loaded:
             dfan, dfqn = plot(dfq, dfa)
+            #st.write(dfan)
             if st.checkbox(f'¿Comparar datos?'):
                 compare(dfqn, dfan)
