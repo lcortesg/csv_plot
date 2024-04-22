@@ -13,9 +13,11 @@ import io
 import csv
 import math
 import numpy as np
+import numpy.ma as ma
 import pandas as pd
 import streamlit as st
 from io import BytesIO
+import scipy.stats
 from scipy import signal
 from scipy.signal import butter, filtfilt
 from dtaidistance import dtw
@@ -66,7 +68,7 @@ def merge_qtm():
             cast = p0
             side = p1 if len(p1) == 3 else p2
             part = p2 if len(p1) == 3 else p1
-            
+
             file = str(data, "utf-8").split("\n")
             file.pop(0)
             filetxt = ""
@@ -92,7 +94,7 @@ def merge_qtm():
                 )
             cont = cont + 1
 
-            
+
             buffer = io.StringIO(filetxt)
             df = pd.read_csv(filepath_or_buffer=buffer)
             keys = df.keys()
@@ -113,13 +115,13 @@ def merge_qtm():
             "Descargar CSV", csv, f"{cast}-{side}.csv", "text/csv", key="download-csv"
         )
         return True, hamster, side
-        
+
     else:
         return False, False, False
 
 
 def load_abma(sideq):
-    
+
     side = "LI" if sideq == "izq" else "LD"
     st.markdown("## Datos ABMA")
     uploaded_file = st.file_uploader(
@@ -149,7 +151,7 @@ def load_abma(sideq):
         return True, dfa
     else:
         return False, False
-   
+
 
 def plot(dfq, dfa):
 
@@ -187,7 +189,7 @@ def plot(dfq, dfa):
     dfan = pd.DataFrame(dfan)
     dfan = dfan.set_index("frame")
     st.line_chart(dfan)
-    
+
     return dfan, dfqn
 
 
@@ -242,22 +244,22 @@ def compare(dfq, dfa):
             if shft + len(dfa[part]) < len(qtm):
                 qtmc = qtm[shft : len(qtm)]
                 abmac = abmac[0 : len(qtmc)]
-                
+
             else:
                 abmac = abmac[shft : shft + len(dfa[part])]
                 qtmc = qtm[0: len(abmac)]
-        
+
         # st.write(f'len(qtmc): {len(qtmc)}')
         # st.write(f'len(abmac): {len(abmac)}')
         # if len(abma) > len(qtm):
-        #     shft = np.argmax(signal.correlate(abmac, qtm)) - len(qtm)  
+        #     shft = np.argmax(signal.correlate(abmac, qtm)) - len(qtm)
         #     qtmc = qtm
         #     abmac = abmac[shft : shft + len(dfa[part])]
-        
-        
-        
+
+
+
         errabs = np.absolute(np.subtract(qtmc,abmac))
-        MSE = np.square(np.subtract(qtmc,abmac)).mean() 
+        MSE = np.square(np.subtract(qtmc,abmac)).mean()
         rmse = math.sqrt(MSE)
 
         a = qtmc
@@ -270,7 +272,7 @@ def compare(dfq, dfa):
         # c = np.correlate(a, b, mode = 'full')
         a = (a - np.mean(a)) / (np.std(a) * len(a))
         b = (b - np.mean(b)) / (np.std(b))
-        c = np.correlate(a, b, 'full')
+        c = np.correlate(a, b, 'same')
         distance = dtw.distance(qtmc, abmac)
 
         dft = {
@@ -280,6 +282,13 @@ def compare(dfq, dfa):
             # f"RMSE - {part}": rmse,
             # f"ABMA_RAW - {part}": abma_raw,
         }
+
+        a = ma.masked_invalid(qtmc)
+        b = ma.masked_invalid(abmac)
+        msk = (~a.mask & ~b.mask)
+        pcoef = scipy.stats.pearsonr(a[msk], b[msk])
+        scoef = scipy.stats.spearmanr(a[msk], b[msk])
+        kcoef = scipy.stats.kendalltau(a[msk], b[msk])
         errores ={
             "Error máximo absoluto": max(errabs),
             "Error mínimo absoluto": min(errabs),
@@ -287,19 +296,28 @@ def compare(dfq, dfa):
             "Error cuadrático medio": rmse,
             "Correlación cruzada máxima": max(c),
             "Distancia promedio DTW": distance/len(abmac),
+            "Pearson's": pcoef[0],
+            "Pearson's p-value": pcoef[1],
+            "Spearman's": scoef[0],
+            "Spearman's p-value": scoef[1],
+            "Kendall's": kcoef[0],
+            "Kendall's p-value": kcoef[1],
         }
 
         dft = pd.DataFrame(dft)
         st.markdown(f"##### Gráficos de las señales")
         st.line_chart(dft)
-        
+
         st.markdown(f"##### Correlación cruzada")
         st.line_chart(c)
 
         path = dtw.warping_path(qtmc, abmac)
-        dtwvis.plot_warping(qtmc, abmac, path, filename="warp.png")
+        figure, axes = dtwvis.plot_warping(qtmc, abmac, path)
+        #dtwvis.plot_warping(qtmc, abmac, path, filename="warp.png")
+
         st.markdown(f"##### DTW warping path")
-        st.image("warp.png", use_column_width=True)
+        st.pyplot(figure)
+        #st.image("warp.png", use_column_width=True)
 
         st.markdown(f"##### Tabla de resultados")
         st.write(errores)
