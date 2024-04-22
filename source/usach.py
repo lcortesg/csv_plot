@@ -2,8 +2,8 @@
 """
 @file    : CSV Converter
 @brief   : Handles TXT to CSV file conversion.
-@date    : 2023/10/12
-@version : 2.0.0
+@date    : 2024/04/22
+@version : 2.0.1
 @author  : Lucas Cortés.
 @contact : lucas.cortes@lanek.cl
 @bug     : None.
@@ -42,7 +42,7 @@ def merge_qtm():
     st.sidebar.markdown("# Comparación QTM/ABMA ❄️")
     st.markdown("## Datos QTM")
     uploaded_files = st.file_uploader(
-        "Hola Estudiante! elige los archivos TXT para convertir",
+        "Elige los archivos TXT para convertir",
         type=["txt"],
         accept_multiple_files=True,
         help="Selecciona uno o más archivos TXT para convertir",

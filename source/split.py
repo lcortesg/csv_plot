@@ -18,7 +18,7 @@ def csv_split(length=3138):
     st.sidebar.markdown("# CSV Split ⚡️")
 
     uploaded_files = st.file_uploader(
-        "Hola Nicco! elige los archivos CSV para dividir",
+        "Elige los archivos CSV para dividir",
         type=["csv"],
         accept_multiple_files=True,
         help="Selecciona uno o más archivos CSV para dividir",

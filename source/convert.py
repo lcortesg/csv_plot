@@ -23,7 +23,7 @@ def csv_convert():
     st.sidebar.markdown("# TXT Convert ❄️")
 
     uploaded_files = st.file_uploader(
-        "Hola Nicco! elige los archivos TXT para convertir",
+        "Elige los archivos TXT para convertir",
         type=["txt"],
         accept_multiple_files=True,
         help="Selecciona uno o más archivos TXT para convertir",
@@ -32,7 +32,7 @@ def csv_convert():
     if len(uploaded_files) > 0:
 
         '''zipObj = ZipFile("sample.zip", "w")'''
-        
+
         for uploaded_file in uploaded_files:
             data = uploaded_file.read()
             name = uploaded_file.name
@@ -72,8 +72,8 @@ def csv_convert():
             buffer = io.StringIO(filetxt)
             buffer.to_csv(name.replace(format,"csv"), index=None)
             zipObj.write(buffer.getvalue())'''
-        
-        
+
+
         '''
         zipObj.close()
         ZipfileDotZip = "sample.zip"

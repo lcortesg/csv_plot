@@ -41,11 +41,11 @@ def main():
     }
 
     selected_function = st.sidebar.selectbox(
-        "Hola Nicco! ¿Que quieres hacer hoy?", functions.keys()
+        "Seleccionar Operación", functions.keys()
     )
 
     if functions[selected_function]():
-        st.markdown("#### ¡Proceso finalizado con éxito! 🥳🎉🎊🎈")
+        st.success("#### ¡Proceso finalizado con éxito! 🥳🎉🎊🎈")
 
 
 if __name__ == "__main__":

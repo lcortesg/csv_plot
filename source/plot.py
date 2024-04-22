@@ -23,7 +23,7 @@ def csv_plot():
     st.sidebar.markdown("# CSV Force Plot 📈")
 
     uploaded_files = st.file_uploader(
-        "Hola Nicco! elige los archivos CSV para graficar",
+        "Elige los archivos CSV para graficar",
         type=["csv"],
         accept_multiple_files=True,
         help="Selecciona uno o más archivos CSV para graficar",
@@ -76,7 +76,7 @@ def csv_plot():
             for option in all_options:
                 if option not in options:
                     df = df.drop(f'{option}', axis=1)
-            
+
             st.subheader(filename)
             st.line_chart(df)
 

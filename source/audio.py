@@ -24,14 +24,14 @@ def wav_plot():
     st.sidebar.markdown("# WAV Plot 📢")
 
     uploaded_files = st.file_uploader(
-        "Hola Nicco! elige los archivos WAV para graficar",
+        "Elige los archivos WAV para graficar",
         type=["wav"],
         accept_multiple_files=True,
         help="Selecciona uno o más archivos WAV para graficar",
     )
 
     if len(uploaded_files) > 0:
-        
+
         for uploaded_file in uploaded_files:
             data = uploaded_file.read()
             bytes_data = uploaded_file.getvalue()
@@ -39,7 +39,7 @@ def wav_plot():
             name = uploaded_file.name
             format = name[-3:]
             st.audio(uploaded_file, format="audio/wav", start_time=0)
-            
+
             if st.checkbox(f'Graficar {name}'):
                 y = handle_uploaded_audio_file(uploaded_file)
                 filename = f'{name[:-4]}'

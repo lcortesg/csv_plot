@@ -19,7 +19,7 @@ def csv_merge():
     st.sidebar.markdown("# CSV Merge 🪢")
 
     uploaded_files = st.file_uploader(
-        "Hola Nicco! elige los archivos CSV para mezclar",
+        "Elige los archivos CSV para mezclar",
         type=["csv"],
         accept_multiple_files=True,
         help="Selecciona uno o más archivos CSV para mezclar",
