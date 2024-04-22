@@ -19,6 +19,6 @@ def welcome():
         - **Merge**: Mezclar archivos CSV de multiples exámenes en uno.
         - **Convert**: Convertir archivos TXT a CVS.
         - **Audio**: Comparar datos de audio.
-        - **USACH**: Cimparar datos de QTM/ABMA.
+        - **USACH**: Comparar datos de QTM/ABMA.
         """
     )
