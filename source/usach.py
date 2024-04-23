@@ -12,6 +12,7 @@
 import io
 import csv
 import math
+import random
 import matplotlib.pyplot as plt
 import numpy as np
 import numpy.ma as ma
@@ -23,13 +24,15 @@ import streamlit as st
 from io import BytesIO
 import scipy.stats
 from scipy.stats import kstest
-from scipy.stats import shapiro 
+from scipy.stats import shapiro
 from scipy.stats import lognorm
 from scipy import signal
 from scipy.signal import butter, filtfilt
 from dtaidistance import dtw
 from dtaidistance import dtw_visualisation as dtwvis
 from scipy.spatial.distance import euclidean
+import spm1d
+
 """
 from fastdtw import fastdtw
 import matplotlib.pyplot as plt
@@ -56,6 +59,17 @@ def cohend(d1, d2):
     # calculate the effect size
     return (u1 - u2) / s
 
+def randomize(x):
+    y = []
+    for i in x:
+        y.append(i+random.uniform(-0.1,0.1))
+    return np.array(y)
+
+def randomizeM(x, n):
+    y = []
+    for i in range(n):
+        y.append(x+random.uniform(-0.1,0.1))
+    return np.array(y)
 
 def merge_qtm():
     st.markdown("# Comparación QTM/ABMA 🏃‍♂️‍➡️️")
@@ -276,7 +290,7 @@ def compare(dfq, dfa):
             else:
                 qtmc = qtm[shft : len(qtm)]
                 abmac = abmac[0 : len(qtmc)]
-        
+
 
         # st.write(f'len(qtmc): {len(qtmc)}')
         # st.write(f'len(abmac): {len(abmac)}')
@@ -354,6 +368,36 @@ def compare(dfq, dfa):
 
         st.markdown(f"##### Tabla de resultados")
         st.write(errores)
+
+
+        #YA,YB      =  np.array([qtmc, randomize(qtmc)]), np.array([abmac, randomize(np.array(abmac))])
+        YA,YB      =  np.array(randomizeM(qtmc, 100)), np.array(randomizeM(np.array(abmac), 100))
+        #st.write(YA)
+        #st.write(YB)
+        spm        = spm1d.stats.ttest_paired(YA, YB)
+        spmi       = spm.inference(0.05, two_tailed=False, interp=True)
+        st.write( spmi )
+
+        #(2) Plot:
+        #plt.close('all')
+        ### plot mean and SD:
+        fig,AX = plt.subplots( 1, 2, figsize=(8, 3.5) )
+        ax     = AX[0]
+        plt.sca(ax)
+        spm1d.plot.plot_mean_sd(YA)
+        spm1d.plot.plot_mean_sd(YB, linecolor='r', facecolor='r')
+        ax.axhline(y=0, color='k', linestyle=':')
+        ax.set_xlabel('Time (%)')
+        ax.set_ylabel(f'{part} angle  (deg)')
+        ### plot SPM results:
+        ax     = AX[1]
+        plt.sca(ax)
+        spmi.plot()
+        spmi.plot_threshold_label(fontsize=8)
+        spmi.plot_p_values(size=10, offsets=[(0,0.3)])
+        ax.set_xlabel('Time (%)')
+        plt.tight_layout()
+        st.pyplot(fig)
 
         """
         tq = np.linspace(start=0, stop=len(qtmc)-1, num=len(qtmc))
