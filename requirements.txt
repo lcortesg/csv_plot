@@ -11,3 +11,4 @@ dtw-python
 dtaidistance==2.0.0
 fastdtw
 spm1d
+librosa

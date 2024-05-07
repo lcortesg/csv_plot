@@ -43,9 +43,9 @@ def main():
     selected_function = st.sidebar.selectbox(
         "Seleccionar Operación", functions.keys()
     )
-
-    if functions[selected_function]():
-        st.success("#### ¡Proceso finalizado con éxito! 🥳🎉🎊🎈")
+    functions[selected_function]()
+    #if functions[selected_function]():
+    #    st.success("#### ¡Proceso finalizado con éxito! 🥳🎉🎊🎈")
 
 
 if __name__ == "__main__":
