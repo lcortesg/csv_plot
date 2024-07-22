@@ -42,6 +42,13 @@ mpl.rcParams['figure.dpi'] = 300
 savefig_options = dict(format="png", dpi=300, bbox_inches="tight")
 """
 
+translate = {
+    "knee": "Rodilla",
+    "hip": "Cadera",
+    "ankle": "Tobillo",
+    "trunk": "Tronco"
+}
+
 @st.cache_data
 def convert_df(df):
     return df.to_csv(index=False).encode("utf-8")
@@ -72,8 +79,9 @@ def randomizeM(x, n):
     return np.array(y)
 
 def merge_qtm():
-    st.markdown("# Comparación QTM/ABMA 🏃‍♂️‍➡️️")
-    st.sidebar.markdown("# Comparación QTM/ABMA 🏃‍♂️‍➡️️")
+    parts = []
+    st.markdown("# Comparación QTM/ABMA 🏃‍♂️")
+    st.sidebar.markdown("# Comparación QTM/ABMA 🏃‍♂️️")
     st.markdown("## Datos QTM")
     uploaded_files = st.file_uploader(
         "Elige los archivos TXT para convertir",
@@ -91,17 +99,9 @@ def merge_qtm():
         for uploaded_file in uploaded_files:
             data = uploaded_file.read()
             name = uploaded_file.name
-            try:
-                p0 = name.split(".")[0].split("_")[0]
-                p1 = name.split(".")[0].split("_")[1]
-                p2 = name.split(".")[0].split("_")[2]
-            except:
-                p0 = name.split(".")[0].split("-")[0]
-                p1 = name.split(".")[0].split("-")[1]
-                p2 = name.split(".")[0].split("-")[2]
-            cast = p0
-            side = p1 if len(p1) == 3 else p2
-            part = p2 if len(p1) == 3 else p1
+            side = name.split(".")[0].split("_")[0]
+            part = translate[name.split(".")[0].split("_")[1]]
+            parts.append(part)
 
             file = str(data, "utf-8").split("\n")
             file.pop(0)
@@ -135,28 +135,29 @@ def merge_qtm():
             for key in keys:
                 perrito[key] = df[key]
                 if "X" in key or "Frame" in key:
-                    tortuguita[key.split("_")[0].lower()] = df[key]
+                    tortuguita[key.split("_")[0]] = df[key]
 
             df = df.set_index("Frame")
             if plot_data:
                 st.line_chart(df)
         pajarito = pd.DataFrame(perrito)
         hamster = pd.DataFrame(tortuguita)
-        hamster = hamster.set_index("frame")
-        # pajarito = pajarito.set_index('Frame')
+        hamster = hamster.set_index("Frame")
+        # pajarito = pajarito.set_index('frame')
         csv = convert_df(pajarito)
         st.download_button(
-            "Descargar CSV", csv, f"{cast}-{side}.csv", "text/csv", key="download-csv"
+            "Descargar CSV", csv, f"{side}.csv", "text/csv", key="download-csv"
         )
-        return True, hamster, side
+        return True, hamster, side, parts
 
     else:
-        return False, False, False
+        return False, False, False, parts
+    
+def load_abma(sideq, parts):
 
-
-def load_abma(sideq):
-
-    side = "LI" if sideq == "izq" else "LD"
+    #parts.append("frame")
+ 
+    side = "LI" if sideq == "left" else "LD"
     st.markdown("## Datos ABMA")
     uploaded_file = st.file_uploader(
         "Elige el archivo CSV para comparar",
@@ -168,16 +169,17 @@ def load_abma(sideq):
     if uploaded_file:
         df = pd.read_csv(uploaded_file)
         keys = df.keys()
-        rinoceronte = {}
-        parts = ["cadera", "rodilla", "tobillo", "frame"]
-        for key in keys:
-            if key.split()[0].lower() in parts:
-                if side == key.split()[-1] or "frame" in key:
-                    rinoceronte[key.split()[0].lower()] = df[key]
 
+        rinoceronte = {}
+        rinoceronte["Frame"] = df["frame"]
+        for key in keys:
+            if f"{side}_FILT" in key:
+                if key.split()[0] in parts:
+                    rinoceronte[key.split()[0]] = df[key]
+       
         dfa = pd.DataFrame(rinoceronte)
         dfa = dfa.dropna()
-        dfa = dfa.set_index("frame")
+        dfa = dfa.set_index("Frame")
 
         for key in dfa:
             dfa[key] = butter_lowpass_filter(data=dfa[key].tolist(), cutoff=6, fs=120, order=3)
@@ -187,42 +189,41 @@ def load_abma(sideq):
         return False, False
 
 
-def plot(dfq, dfa):
+def plot(dfq, dfa, parts):
 
     st.write(f"## QTM")
     values = st.slider(
         'Select a range of values',
         int(dfq.index[0]), int(dfq.index[-1]), (int(dfq.index[0]), int(dfq.index[-1])))
     dfqn = {}
-    dfqn["cadera"] = dfq["cadera"].loc[values[0]:values[1]]
-    dfqn["rodilla"] = dfq["rodilla"].loc[values[0]:values[1]]
-    dfqn["tobillo"] = dfq["tobillo"].loc[values[0]:values[1]]
-    dfqn["frame"] = dfq.index[values[0]-int(dfq.index[0]):values[1]-int(dfq.index[0]-1)]
+    dfqn["Frame"] = dfq.index[values[0]-int(dfq.index[0]):values[1]-int(dfq.index[0]-1)]
+    for part in parts:
+        dfqn[part] = dfq[part].loc[values[0]:values[1]]
+   
     dfqn = pd.DataFrame(dfqn)
-    dfqn = dfqn.set_index("frame")
+    dfqn = dfqn.set_index("Frame")
     st.line_chart(dfqn)
 
     st.write(f"## ABMA")
-    inv_hip = st.checkbox(f'¿Invertir Cadera?')
-    inv_knee = st.checkbox(f'¿Invertir Rodilla?')
-    inv_ankle = st.checkbox(f'¿invertir Tobillo?')
+    
     dfan = {}
     values = st.slider(
         'Select a range of values',
         int(dfa.index[0]), int(dfa.index[-1]), (int(dfa.index[0]), int(dfa.index[-1])))
-    dfan["cadera"] = dfa["cadera"].loc[values[0]:values[1]]
-    dfan["rodilla"] = dfa["rodilla"].loc[values[0]:values[1]]
-    dfan["tobillo"] = dfa["tobillo"].loc[values[0]:values[1]]
-    dfan["frame"] = dfa.index[values[0]-int(dfa.index[0]):values[1]-int(dfa.index[0]-1)]
-    if inv_hip:
-        dfan["cadera"] = -dfan["cadera"]
-    if inv_knee:
-        dfan["rodilla"] = -dfan["rodilla"]
-    if inv_ankle:
-        dfan["tobillo"] = -dfan["tobillo"]
+    dfan["Frame"] = dfa.index[values[0]-int(dfa.index[0]):values[1]-int(dfa.index[0]-1)]
+    for part in parts:
+        dfan[part] = dfa[part].loc[values[0]:values[1]]
+
+    for part in parts:
+        if st.checkbox(f'¿Invertir {part}?'):
+            dfan[part] = -dfan[part]
     dfan = pd.DataFrame(dfan)
-    dfan = dfan.set_index("frame")
+    dfan = dfan.set_index("Frame")
     st.line_chart(dfan)
+
+
+
+
 
     return dfan, dfqn
 
@@ -238,18 +239,13 @@ def butter_lowpass_filter(data, cutoff, fs, order):
     return y
 
 
-def compare(dfq, dfa):
+def compare(dfq, dfa, parts):
     inverse = False
     samp = st.selectbox("Selecciona la frecuencia de muestreo de QTM", (100, 120))
-    #cutoff = st.slider("Seleccionar la frecuencia de corte", 4, 10, 6)
-    #order = st.slider("Selecciona el orden del filtro", 1, 8, 1)
-
-    parts = ["cadera", "rodilla", "tobillo"]
 
     for part in parts:
         st.write(f"### {part}")
         abma = dfa[part].to_list()
-        #abma = butter_lowpass_filter(data=abma_raw, cutoff=cutoff, fs=120, order=order)
         qtm = dfq[part].to_list()
         if samp != 120:
             qtm = np.interp(
@@ -257,49 +253,28 @@ def compare(dfq, dfa):
             )
         number = st.number_input(f'Inserte el desfase de {part}', min_value=-90, max_value=90, value=0, step=1, key=part)
         abmac = [x + number for x in abma]
-        # st.write(f'len(qtm): {len(qtm)}')
-        # st.write(f'len(abma): {len(abma)}')
-        # if len(qtm) > len(abma):
 
         shft = np.argmax(signal.correlate(qtm, abmac)) - len(abmac)
-        #st.write(f"Shift: {shft}")
         if shft < 0:
             inverse = True
             shft = np.argmax(signal.correlate(abmac, qtm)) - len(qtm)
-            #st.write(f"Shift: {shft}")
 
         if inverse:
-            # st.write("Inversed")
             if shft + len(dfa[part]) < len(qtm):
-                #st.write("case 1")
                 fix = len(qtm)-len(dfa[part])-shft
                 qtmc = qtm[shft+fix : len(qtm)]
                 abmac = abmac[0 : len(qtmc)]
-                #st.write(len(qtmc))
-                #st.write(len(abmac))
 
             else:
-                #st.write("case 2")
                 abmac = abmac[shft : shft + len(dfa[part])]
                 qtmc = qtm[0: len(abmac)]
 
         if not inverse:
-            # st.write("Not Inversed")
             if shft + len(dfa[part]) < len(qtm):
                 qtmc = qtm[shft : shft + len(dfa[part])]
             else:
                 qtmc = qtm[shft : len(qtm)]
                 abmac = abmac[0 : len(qtmc)]
-
-
-        # st.write(f'len(qtmc): {len(qtmc)}')
-        # st.write(f'len(abmac): {len(abmac)}')
-        # if len(abma) > len(qtm):
-        #     shft = np.argmax(signal.correlate(abmac, qtm)) - len(qtm)
-        #     qtmc = qtm
-        #     abmac = abmac[shft : shft + len(dfa[part])]
-
-
 
         errabs = np.absolute(np.subtract(qtmc,abmac))
         MSE = np.square(np.subtract(qtmc,abmac)).mean()
@@ -341,15 +316,17 @@ def compare(dfq, dfa):
             "Mean RMSE": rmse,
             "Max X-Corr": max(c),
             "Mean DTW": distance/len(abmac),
-            #"Pearson's correlation": pcoef[0],
-            #"Pearson's p": pcoef[1],
+            "Pearson's correlation": pcoef[0],
+            "Pearson's p-value": pcoef[1],
             "Spearman's correlation": scoef[0],
-            "Spearman's p": scoef[1],
+            "Spearman's p-value": scoef[1],
             "Kendall's correlation": kcoef[0],
             "Kendall's tau": kcoef[1],
-            #"Qualisys Shapiro": f"{shapiro(qtmc)}",
-            #"ABMA Shapiro": f"{shapiro(abmac)}",
-            #"Cohen's d": cohen,
+            "QTM Shapiro's correlation": shapiro(qtmc).statistic,
+            "QTM Shapiro's p-value": shapiro(qtmc).pvalue,
+            "ABMA Shapiro's correlation": shapiro(abmac).statistic,
+            "ABMA Shapiro's p-value": shapiro(abmac).pvalue,
+            "Cohen's d": cohen,
         }
 
         dft = pd.DataFrame(dft)
@@ -370,13 +347,11 @@ def compare(dfq, dfa):
         st.write(errores)
 
 
-        #YA,YB      =  np.array([qtmc, randomize(qtmc)]), np.array([abmac, randomize(np.array(abmac))])
-        YA,YB      =  np.array(randomizeM(qtmc, 100)), np.array(randomizeM(np.array(abmac), 100))
-        #st.write(YA)
-        #st.write(YB)
-        spm        = spm1d.stats.ttest_paired(YA, YB)
-        spmi       = spm.inference(0.05, two_tailed=False, interp=True)
-        st.write( spmi )
+        #YA,YB = np.array([qtmc, randomize(qtmc)]), np.array([abmac, randomize(np.array(abmac))])
+        YA,YB = np.array(randomizeM(qtmc, 100)), np.array(randomizeM(np.array(abmac), 100))
+        spm = spm1d.stats.ttest_paired(YA, YB)
+        spmi = spm.inference(0.05, two_tailed=False, interp=True)
+        st.write(spmi)
 
         #(2) Plot:
         #plt.close('all')
@@ -399,40 +374,14 @@ def compare(dfq, dfa):
         plt.tight_layout()
         st.pyplot(fig)
 
-        """
-        tq = np.linspace(start=0, stop=len(qtmc)-1, num=len(qtmc))
-        ta = np.linspace(start=0, stop=len(abmac)-1, num=len(abmac))
 
-        xyq = list(zip(tq, qtmc))
-        xya = list(zip(ta, abmac))
-        x1 = np.array(xyq)
-        x2 = np.array(xya)
-
-        distance, warp_path = fastdtw(x1, x2, dist=euclidean)
-
-        fig, ax = plt.subplots(figsize=(16, 12))
-
-        # Remove the border and axes ticks
-        fig.patch.set_visible(False)
-        ax.axis('off')
-
-        for [map_x, map_y] in warp_path:
-            ax.plot([map_x, map_y], [x1[map_x], x2[map_y]], '-k')
-
-        ax.plot(x1, color='blue', marker='o', markersize=10, linewidth=5)
-        ax.plot(x2, color='red', marker='o', markersize=10, linewidth=5)
-        ax.tick_params(axis="both", which="major", labelsize=18)
-
-        fig.savefig("ex2_dtw_distance.png", **savefig_options)
-        """
 
 
 def usach_plot():
-    merged, dfq, sideq = merge_qtm()
+    merged, dfq, sideq, parts = merge_qtm()
     if merged:
-        loaded, dfa = load_abma(sideq)
+        loaded, dfa = load_abma(sideq, parts)
         if loaded:
-            dfan, dfqn = plot(dfq, dfa)
-            #st.write(dfan)
+            dfan, dfqn = plot(dfq, dfa, parts)
             if st.checkbox(f'¿Comparar datos?'):
-                compare(dfqn, dfan)
+                compare(dfqn, dfan, parts)
