@@ -18,7 +18,7 @@ from source.convert import csv_convert
 from source.welcome import welcome
 from source.audio import wav_plot
 from source.usach import usach_plot
-
+from source.usach2 import usach_plot2
 im = Image.open("assets/logos/favicon.png")
 
 st.set_page_config(
@@ -38,6 +38,7 @@ def main():
         "Convert": csv_convert,
         "Audio": wav_plot,
         "USACH": usach_plot,
+        "USACH-MKL": usach_plot2,
     }
 
     selected_function = st.sidebar.selectbox(
