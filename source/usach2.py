@@ -223,6 +223,12 @@ def plot(dfq, dfa, parts):
     for part in parts:
         if st.checkbox(f'¿Invertir {part}?'):
             dfan[part] = -dfan[part]
+        number = st.number_input(
+            "Ingresar desfase", value=0, placeholder="Type a number...", min_value=-360, max_value=360, step=180, key=part
+        )
+        dfan[part] = dfan[part]+number
+        
+        
     dfan = pd.DataFrame(dfan)
     dfan = dfan.set_index("Frame")
     st.line_chart(dfan)
