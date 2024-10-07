@@ -152,11 +152,11 @@ def merge_qtm():
 
     else:
         return False, False, False, parts
-    
+
 def load_abma(sideq, parts):
 
     #parts.append("frame")
- 
+
     side = "L" if sideq == "left" else "R"
     st.markdown("## Datos ABMA")
     uploaded_file = st.file_uploader(
@@ -179,7 +179,7 @@ def load_abma(sideq, parts):
                 if key.split("_")[0][:-1] in parts:
                     rinoceronte[key.split("_")[0][:-1]] = df[key]
 
-       
+
         dfa = pd.DataFrame(rinoceronte)
         dfa = dfa.dropna()
         dfa = dfa.set_index("Frame")
@@ -205,13 +205,13 @@ def plot(dfq, dfa, parts):
     dfqn["Frame"] = dfq.index[values[0]-int(dfq.index[0]):values[1]-int(dfq.index[0]-1)]
     for part in parts:
         dfqn[part] = dfq[part].loc[values[0]:values[1]]
-   
+
     dfqn = pd.DataFrame(dfqn)
     dfqn = dfqn.set_index("Frame")
     st.line_chart(dfqn)
 
     st.write(f"## ABMA")
-    
+
     dfan = {}
     values = st.slider(
         'Select a range of values',
@@ -224,11 +224,11 @@ def plot(dfq, dfa, parts):
         if st.checkbox(f'¿Invertir {part}?'):
             dfan[part] = -dfan[part]
         number = st.number_input(
-            "Ingresar desfase", value=0, placeholder="Type a number...", min_value=-360, max_value=360, step=180, key=part
+            "Ingresar desfase", value=0, placeholder="Type a number...", min_value=-360, max_value=360, step=180, key=f"{part}-desfase"
         )
         dfan[part] = dfan[part]+number
-        
-        
+
+
     dfan = pd.DataFrame(dfan)
     dfan = dfan.set_index("Frame")
     st.line_chart(dfan)
@@ -263,7 +263,7 @@ def compare(dfq, dfa, parts):
             qtm = np.interp(
                 np.arange(0, len(qtm), samp / 120), np.arange(0, len(qtm)), qtm
             )
-        number = st.number_input(f'Inserte el desfase de {part}', min_value=-90, max_value=90, value=0, step=1, key=part)
+        number = st.number_input(f'Inserte el desfase de {part}', min_value=-90, max_value=90, value=0, step=1, key=f"{part}-num")
         abmac = [x + number for x in abma]
 
         shft = np.argmax(signal.correlate(qtm, abmac)) - len(abmac)
