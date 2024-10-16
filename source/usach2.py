@@ -251,7 +251,7 @@ def butter_lowpass_filter(data, cutoff, fs, order):
     return y
 
 
-def compare(dfq, dfa, parts):
+def compare(dfq, dfa, parts, adv):
     inverse = False
     samp = st.selectbox("Selecciona la frecuencia de muestreo de QTM", (100, 120))
 
@@ -321,25 +321,34 @@ def compare(dfq, dfa, parts):
         scoef = scipy.stats.spearmanr(a[msk], b[msk])
         kcoef = scipy.stats.kendalltau(a[msk], b[msk])
         cohen = cohend(qtmc, abmac)
-        errores ={
-            "Max ABSE": max(errabs),
-            "Min ABSE": min(errabs),
-            "Mean ABSE": errabs.mean(),
-            "Mean RMSE": rmse,
-            "Max X-Corr": max(c),
-            "Mean DTW": distance/len(abmac),
-            "Pearson's correlation": pcoef[0],
-            "Pearson's p-value": pcoef[1],
-            "Spearman's correlation": scoef[0],
-            "Spearman's p-value": scoef[1],
-            "Kendall's correlation": kcoef[0],
-            "Kendall's tau": kcoef[1],
-            "QTM Shapiro's correlation": shapiro(qtmc).statistic,
-            "QTM Shapiro's p-value": shapiro(qtmc).pvalue,
-            "ABMA Shapiro's correlation": shapiro(abmac).statistic,
-            "ABMA Shapiro's p-value": shapiro(abmac).pvalue,
-            "Cohen's d": cohen,
-        }
+        if adv:
+            errores ={
+                "Max ABSE": max(errabs),
+                "Min ABSE": min(errabs),
+                "Mean ABSE": errabs.mean(),
+                "Mean RMSE": rmse,
+                "Max X-Corr": max(c),
+                "Mean DTW": distance/len(abmac),
+                "Pearson's correlation": pcoef[0],
+                "Pearson's p-value": pcoef[1],
+                "Spearman's correlation": scoef[0],
+                "Spearman's p-value": scoef[1],
+                "Kendall's correlation": kcoef[0],
+                "Kendall's tau": kcoef[1],
+                "QTM Shapiro's correlation": shapiro(qtmc).statistic,
+                "QTM Shapiro's p-value": shapiro(qtmc).pvalue,
+                "ABMA Shapiro's correlation": shapiro(abmac).statistic,
+                "ABMA Shapiro's p-value": shapiro(abmac).pvalue,
+                "Cohen's d": cohen,
+            }
+        else:
+            errores ={
+                "Max ABSE": max(errabs),
+                "Min ABSE": min(errabs),
+                "Mean ABSE": errabs.mean(),
+                "Mean RMSE": rmse,
+            }
+
 
         dft = pd.DataFrame(dft)
         st.markdown(f"##### Gráficos de las señales")
@@ -348,43 +357,45 @@ def compare(dfq, dfa, parts):
         st.markdown(f"##### Correlación cruzada")
         st.line_chart(c)
 
-        st.markdown(f"##### DTW warping path")
-        path = dtw.warping_path(qtmc, abmac)
-        figure, axes = dtwvis.plot_warping(qtmc, abmac, path)
-        #dtwvis.plot_warping(qtmc, abmac, path, filename="warp.png")
-        st.pyplot(figure)
-        #st.image("warp.png", use_column_width=True)
+        if adv:
+
+            st.markdown(f"##### DTW warping path")
+            path = dtw.warping_path(qtmc, abmac)
+            figure, axes = dtwvis.plot_warping(qtmc, abmac, path)
+            #dtwvis.plot_warping(qtmc, abmac, path, filename="warp.png")
+            st.pyplot(figure)
+            #st.image("warp.png", use_column_width=True)
 
         st.markdown(f"##### Tabla de resultados")
         st.write(errores)
 
+        if adv:
+            #YA,YB = np.array([qtmc, randomize(qtmc)]), np.array([abmac, randomize(np.array(abmac))])
+            YA,YB = np.array(randomizeM(qtmc, 100)), np.array(randomizeM(np.array(abmac), 100))
+            spm = spm1d.stats.ttest_paired(YA, YB)
+            spmi = spm.inference(0.05, two_tailed=False, interp=True)
+            st.write(spmi)
 
-        #YA,YB = np.array([qtmc, randomize(qtmc)]), np.array([abmac, randomize(np.array(abmac))])
-        YA,YB = np.array(randomizeM(qtmc, 100)), np.array(randomizeM(np.array(abmac), 100))
-        spm = spm1d.stats.ttest_paired(YA, YB)
-        spmi = spm.inference(0.05, two_tailed=False, interp=True)
-        st.write(spmi)
-
-        #(2) Plot:
-        #plt.close('all')
-        ### plot mean and SD:
-        fig,AX = plt.subplots( 1, 2, figsize=(8, 3.5) )
-        ax     = AX[0]
-        plt.sca(ax)
-        spm1d.plot.plot_mean_sd(YA)
-        spm1d.plot.plot_mean_sd(YB, linecolor='r', facecolor='r')
-        ax.axhline(y=0, color='k', linestyle=':')
-        ax.set_xlabel('Time (%)')
-        ax.set_ylabel(f'{part} angle  (deg)')
-        ### plot SPM results:
-        ax     = AX[1]
-        plt.sca(ax)
-        spmi.plot()
-        spmi.plot_threshold_label(fontsize=8)
-        spmi.plot_p_values(size=10, offsets=[(0,0.3)])
-        ax.set_xlabel('Time (%)')
-        plt.tight_layout()
-        st.pyplot(fig)
+            #(2) Plot:
+            #plt.close('all')
+            ### plot mean and SD:
+            fig,AX = plt.subplots( 1, 2, figsize=(8, 3.5) )
+            ax     = AX[0]
+            plt.sca(ax)
+            spm1d.plot.plot_mean_sd(YA)
+            spm1d.plot.plot_mean_sd(YB, linecolor='r', facecolor='r')
+            ax.axhline(y=0, color='k', linestyle=':')
+            ax.set_xlabel('Time (%)')
+            ax.set_ylabel(f'{part} angle  (deg)')
+            ### plot SPM results:
+            ax     = AX[1]
+            plt.sca(ax)
+            spmi.plot()
+            spmi.plot_threshold_label(fontsize=8)
+            spmi.plot_p_values(size=10, offsets=[(0,0.3)])
+            ax.set_xlabel('Time (%)')
+            plt.tight_layout()
+            st.pyplot(fig)
 
 
 
@@ -396,4 +407,5 @@ def usach_plot2():
         if loaded:
             dfan, dfqn = plot(dfq, dfa, parts)
             if st.checkbox(f'¿Comparar datos?'):
-                compare(dfqn, dfan, parts)
+                adv = st.toggle(f"Modo avanzado")
+                compare(dfqn, dfan, parts, adv)
