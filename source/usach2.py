@@ -80,8 +80,8 @@ def randomizeM(x, n):
 
 def merge_qtm():
     parts = []
-    st.markdown("# Comparación QTM/ABMA 🏃‍♂️")
-    st.sidebar.markdown("# Comparación QTM/ABMA 🏃‍♂️️")
+    st.markdown("# Comparación QTM/ABMA-LITE 🏃‍♂️")
+    st.sidebar.markdown("# Comparación QTM/ABMA-LITE 🏃‍♂️️")
     st.markdown("## Datos QTM")
     uploaded_files = st.file_uploader(
         "Elige los archivos TXT para convertir",
