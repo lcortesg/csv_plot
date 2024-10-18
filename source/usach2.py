@@ -260,6 +260,7 @@ def compare(dfq, dfa, parts):
 
     inverse = False
     samp = st.selectbox("Selecciona la frecuencia de muestreo de QTM", (100, 120))
+    adv = st.toggle(f"Modo avanzado", key=f"advanced")
 
     for part in parts:
         st.write(f"### {part}")
@@ -320,7 +321,7 @@ def compare(dfq, dfa, parts):
         st.line_chart(dfo)
 
         try:
-            adv = st.toggle(f"Modo avanzado", key=f"advanced-{part}")
+
             abma = abma.tolist()
             qtm = qtm.tolist()
 
@@ -439,8 +440,9 @@ def compare(dfq, dfa, parts):
             st.write(errores)
 
             if adv:
+                st.markdown(f"##### SPM")
                 #YA,YB = np.array([qtmc, randomize(qtmc)]), np.array([abmac, randomize(np.array(abmac))])
-                YA,YB = np.array(randomizeM(qtmc, 100)), np.array(randomizeM(np.array(abmac), 100))
+                YA,YB = np.array(randomizeM(np.array(qtmc), 100)), np.array(randomizeM(np.array(abmac), 100))
                 spm = spm1d.stats.ttest_paired(YA, YB)
                 spmi = spm.inference(0.05, two_tailed=False, interp=True)
                 st.write(spmi)
