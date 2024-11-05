@@ -6,36 +6,70 @@ import pyhrv.time_domain as td
 import pyhrv.frequency_domain as fd
 import matplotlib.pyplot as plt
 import plotly.graph_objects as go
+import numpy as np
+import math
 
 def hrv():
     # Streamlit app setup
-    st.title("HRV Analysis with pyhrv")
+    st.title("Análisis HRV con pyhrv")
 
     # Upload CSV file
-    uploaded_file = st.file_uploader("Upload a CSV file with heart rate (bpm) data", type="csv")
+    uploaded_file = st.file_uploader("Cargar archivo CSV con data (bpm)", type="csv")
 
     if uploaded_file:
         # Read CSV file, skipping the first two rows
-        data = pd.read_csv(uploaded_file, skiprows=2)
+        data = pd.read_csv(uploaded_file)
+        f2r = data.head(1)
+        #st.write(f2r.head())
+
+
+        st.write("### Información")
+        for i in f2r.keys():
+            # Check if the value is a number and not NaN
+            value = f2r[i].values[0]
+
+
+
+            # Skip iteration if the value is NaN
+            if (isinstance(value, (int, float)) and not math.isnan(value)) or isinstance(value, (str)):
+                st.markdown(f"""
+                    **{i}**: {value}\n
+                """)
+
+
+        new_column_names = data.iloc[1]
+        #st.write(new_column_names)
+
+        # Skip the first row and set the new column names
+        data = data[2:]  # Skip the first row
+        data.columns = new_column_names  # Set new column names
+
+        #data = pd.read_csv(uploaded_file, skiprows=2)
 
         # Display the raw data
         st.write("### Raw Data")
-        st.write(data.head())
+        st.write(data)
 
 
         # Assuming a column named 'HR (bpm)' in the uploaded CSV file
         if 'HR (bpm)' in data.columns:
             heart_rate_bpm = data['HR (bpm)'].values
+            temp = data['Temperatures (C)'].values
 
-            st.write("### BPM")
+            st.write("### BPM & Temp")
             # Create a Plotly figure
             fig = go.Figure()
-            fig.add_trace(go.Scatter(y=heart_rate_bpm, mode='lines+markers', name="Values"))
+            fig.add_trace(go.Scatter(y=heart_rate_bpm, mode='lines+markers', name="BPM"))
+            fig.add_trace(go.Scatter(y=temp, mode='lines+markers', name="Temp"))
             # Display the Plotly chart in Streamlit
             st.plotly_chart(fig)
 
+            hrvalues = [int(x) for x in heart_rate_bpm]
+
             # Convert heart rate from bpm to R-R intervals in milliseconds
-            rr_intervals = 60000 / heart_rate_bpm  # in ms
+            rr_intervals = [60000 / x for x in hrvalues]
+            #rr_intervals = 60000 / hrvalues  # in ms
+
 
             try:
                 # Time-domain HRV metrics
@@ -78,9 +112,9 @@ def hrv():
 
 
             except Exception as e:
-                st.error(f"Error processing data: {e}")
+                st.error(f"Error procesando datos: {e}")
 
         else:
-            st.error("CSV file must contain a 'HR (bpm)' column.")
+            st.error("El archivo CSV debe contener la columna 'HR (bpm)'.")
     else:
-        st.info("Please upload a CSV file to begin analysis.")
+        st.info("Subir archivo para realizar análisis")
