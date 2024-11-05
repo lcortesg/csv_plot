@@ -19,6 +19,7 @@ from source.welcome import welcome
 from source.audio import wav_plot
 from source.usach import usach_plot
 from source.usach2 import usach_plot2
+from source.hrv import hrv
 im = Image.open("assets/logos/favicon.png")
 
 st.set_page_config(
@@ -39,6 +40,7 @@ def main():
         "Audio": wav_plot,
         "USACH": usach_plot,
         "USACH-MKL": usach_plot2,
+        "HRV": hrv,
     }
 
     selected_function = st.sidebar.selectbox(
