@@ -95,7 +95,8 @@ def merge_qtm():
     tortuguita = {}
     cont = 0
     if len(uploaded_files) > 0:
-        plot_data = st.checkbox(f'¿Graficar datos?')
+        #plot_data = st.checkbox(f'¿Graficar datos?')
+        plot_data = False
         for uploaded_file in uploaded_files:
             data = uploaded_file.read()
             name = uploaded_file.name
@@ -259,7 +260,10 @@ def compare(dfq, dfa, parts):
 
 
     inverse = False
-    samp = st.selectbox("Selecciona la frecuencia de muestreo de QTM", (100, 120))
+    #samp = st.selectbox("Selecciona la frecuencia de muestreo de QTM", (100, 120))
+    samp = st.number_input(
+        "Ingresar la frecuencia de muestreo de QTM", value=88, placeholder="Type a number...", min_value=0, max_value=240, step=1, key=f"freq-qtm"
+    )
     adv = st.toggle(f"Modo avanzado", key=f"advanced")
 
     for part in parts:
@@ -321,7 +325,6 @@ def compare(dfq, dfa, parts):
         st.line_chart(dfo)
 
         try:
-
             abma = abma.tolist()
             qtm = qtm.tolist()
 
@@ -364,6 +367,7 @@ def compare(dfq, dfa, parts):
                 # f"RMSE - {part}": rmse,
                 # f"ABMA_RAW - {part}": abma_raw,
             }
+
             dft = pd.DataFrame(dft)
 
             st.markdown(f"###### Gráficos de las señales sincronizadas")
