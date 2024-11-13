@@ -15,4 +15,3 @@ librosa
 heartpy
 pyhrv
 hrv-analysis
-seaborn
