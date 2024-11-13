@@ -1,6 +1,6 @@
 streamlit
 wheel
-numpy
+numpy==2.0.1
 pandas
 matplotlib
 plotly
