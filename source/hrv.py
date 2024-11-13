@@ -10,9 +10,7 @@ import numpy as np
 import math
 import warnings
 from hrvanalysis import get_time_domain_features, get_frequency_domain_features, plot_psd, plot_poincare
-import seaborn as sns
-sns.set_style("darkgrid")
-plt.style.use('ggplot')
+
 
 def hrv():
     # Streamlit app setup
