@@ -38,7 +38,7 @@ def compare():
                 # Trim columns
                 col_trim = []
                 for col in column_names:
-                    if "eye" in col.lower() or "iris" in col.lower():
+                    if "eye" in col.lower() or "iris" in col.lower() or "pupil" in col.lower():
                         col_trim.append(col)
 
                 opt1 = st.selectbox(
