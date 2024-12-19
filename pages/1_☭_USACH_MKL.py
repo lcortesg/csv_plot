@@ -32,15 +32,15 @@ from dtaidistance import dtw
 from dtaidistance import dtw_visualisation as dtwvis
 from scipy.spatial.distance import euclidean
 import spm1d
+from PIL import Image
+im = Image.open("assets/logos/favicon.png")
+st.set_page_config(
+    page_title="CSV Handler",
+    page_icon=im,
+    layout="wide",
+)
 
-"""
-from fastdtw import fastdtw
-import matplotlib.pyplot as plt
 
-import matplotlib as mpl
-mpl.rcParams['figure.dpi'] = 300
-savefig_options = dict(format="png", dpi=300, bbox_inches="tight")
-"""
 
 translate = {
     "knee": "knee",
@@ -507,3 +507,10 @@ def sync_signals(qtm, abma):
     else:
         # Both signals are already the same length
         return qtm, abma
+
+
+def main():
+    usach_plot2()
+
+if __name__ == "__main__":
+    main()

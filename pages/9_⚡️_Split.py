@@ -10,7 +10,13 @@
 
 import pandas as pd
 import streamlit as st
-
+from PIL import Image
+im = Image.open("assets/logos/favicon.png")
+st.set_page_config(
+    page_title="CSV Handler",
+    page_icon=im,
+    layout="wide",
+)
 
 def csv_split(length=3138):
 
@@ -52,3 +58,9 @@ def csv_split(length=3138):
         return True
 
     return False
+
+def main():
+    csv_split()
+
+if __name__ == "__main__":
+    main()

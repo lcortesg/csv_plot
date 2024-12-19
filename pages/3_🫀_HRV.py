@@ -10,11 +10,18 @@ import numpy as np
 import math
 import warnings
 from hrvanalysis import get_time_domain_features, get_frequency_domain_features, plot_psd, plot_poincare
+from PIL import Image
+im = Image.open("assets/logos/favicon.png")
+st.set_page_config(
+    page_title="CSV Handler",
+    page_icon=im,
+    layout="wide",
+)
 
-
-def hrv():
+def hrv_comp():
     # Streamlit app setup
-    st.title("Análisis HRV")
+    st.title("Análisis HRV 🫀")
+    st.sidebar.markdown("# Análisis HRV 🫀")
 
     # Upload CSV file
     uploaded_file = st.file_uploader("Cargar archivo CSV con data (bpm)", type="csv")
@@ -128,3 +135,9 @@ def hrv():
             st.error("El archivo CSV debe contener la columna 'HR (bpm)'.")
     else:
         st.info("Subir archivo para realizar análisis")
+
+def main():
+    hrv_comp()
+
+if __name__ == "__main__":
+    main()

@@ -23,6 +23,14 @@ import plotly.figure_factory as ff
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import scipy.io.wavfile as wavfile
+from PIL import Image
+im = Image.open("assets/logos/favicon.png")
+st.set_page_config(
+    page_title="CSV Handler",
+    page_icon=im,
+    layout="wide",
+)
+
 
 def wav_plot():
 
@@ -169,3 +177,10 @@ def detect_discontinuities(time, data, sample_rate, threshold=0.1):
         t.append(time[i])
 
     return discontinuity_indices, t, p
+
+
+def main():
+    wav_plot()
+
+if __name__ == "__main__":
+    main()

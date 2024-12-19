@@ -6,11 +6,18 @@ import plotly.express as px
 import numpy as np
 import math
 import warnings
-
+from PIL import Image
+im = Image.open("assets/logos/favicon.png")
+st.set_page_config(
+    page_title="CSV Handler",
+    page_icon=im,
+    layout="wide",
+)
 
 def compare():
     # Streamlit app setup
-    st.title("Análisis Facial")
+    st.title("Análisis Facial 👀")
+    st.sidebar.markdown("# Análisis facial 👀")
 
     # Upload CSV file
 
@@ -78,7 +85,16 @@ def compare():
                 fig = px.line(data2, x=data2.index, y=opt2, title=f'{opt2}')
                 st.write(fig)
 
+                fig2 = px.line(data2, x="Pupil position left X", y="Pupil position left Y", title=f'{opt2}')
+                st.write(fig2)
+
 
 
     else:
         st.info("Subir archivo para realizar análisis")
+
+def main():
+    compare()
+
+if __name__ == "__main__":
+    main()

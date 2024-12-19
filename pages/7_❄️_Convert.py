@@ -15,7 +15,13 @@ import csv
 import pandas as pd
 import streamlit as st
 from zipfile import ZipFile
-
+from PIL import Image
+im = Image.open("assets/logos/favicon.png")
+st.set_page_config(
+    page_title="CSV Handler",
+    page_icon=im,
+    layout="wide",
+)
 
 def csv_convert():
 
@@ -90,3 +96,9 @@ def csv_convert():
         return True
 
     return False
+
+def main():
+    csv_convert()
+
+if __name__ == "__main__":
+    main()

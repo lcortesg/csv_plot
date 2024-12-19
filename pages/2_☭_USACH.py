@@ -32,15 +32,15 @@ from dtaidistance import dtw
 from dtaidistance import dtw_visualisation as dtwvis
 from scipy.spatial.distance import euclidean
 import spm1d
+from PIL import Image
+im = Image.open("assets/logos/favicon.png")
+st.set_page_config(
+    page_title="CSV Handler",
+    page_icon=im,
+    layout="wide",
+)
 
-"""
-from fastdtw import fastdtw
-import matplotlib.pyplot as plt
 
-import matplotlib as mpl
-mpl.rcParams['figure.dpi'] = 300
-savefig_options = dict(format="png", dpi=300, bbox_inches="tight")
-"""
 
 translate = {
     "knee": "Rodilla",
@@ -152,11 +152,11 @@ def merge_qtm():
 
     else:
         return False, False, False, parts
-    
+
 def load_abma(sideq, parts):
 
     #parts.append("frame")
- 
+
     side = "LI" if sideq == "left" else "LD"
     st.markdown("## Datos ABMA")
     uploaded_file = st.file_uploader(
@@ -176,7 +176,7 @@ def load_abma(sideq, parts):
             if f"{side}_FILT" in key:
                 if key.split()[0] in parts:
                     rinoceronte[key.split()[0]] = df[key]
-       
+
         dfa = pd.DataFrame(rinoceronte)
         dfa = dfa.dropna()
         dfa = dfa.set_index("Frame")
@@ -199,13 +199,13 @@ def plot(dfq, dfa, parts):
     dfqn["Frame"] = dfq.index[values[0]-int(dfq.index[0]):values[1]-int(dfq.index[0]-1)]
     for part in parts:
         dfqn[part] = dfq[part].loc[values[0]:values[1]]
-   
+
     dfqn = pd.DataFrame(dfqn)
     dfqn = dfqn.set_index("Frame")
     st.line_chart(dfqn)
 
     st.write(f"## ABMA")
-    
+
     dfan = {}
     values = st.slider(
         'Select a range of values',
@@ -385,3 +385,10 @@ def usach_plot():
             dfan, dfqn = plot(dfq, dfa, parts)
             if st.checkbox(f'¿Comparar datos?'):
                 compare(dfqn, dfan, parts)
+
+
+def main():
+    usach_plot()
+
+if __name__ == "__main__":
+    main()
