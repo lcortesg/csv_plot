@@ -1056,7 +1056,7 @@ def rms_rectify_signal(signal, sample_rate=1000, window_size_ms=125, overlap_ms=
     # Convert window size and overlap from milliseconds to samples
     window_size_samples = int(window_size_ms * sample_rate / 1000)
     overlap_samples = int(overlap_ms * sample_rate / 1000)
-    step_size = window_size_samples - overlap_samples
+    step_size = max(window_size_samples - overlap_samples, 1)
 
     rms_values = []
     times = []
@@ -1273,7 +1273,7 @@ def detect_threshold_crossings(time, signal, threshold, window_size_ms, overlap_
     # Convert window size and overlap from milliseconds to samples
     window_size_samples = int(window_size_ms * sample_rate / 1000)
     overlap_samples = int(overlap_ms * sample_rate / 1000)
-    step_size = window_size_samples - overlap_samples
+    step_size = max(window_size_samples - overlap_samples, 1)
 
     # Initialize the result array with zeros
     threshold_crossings = np.zeros_like(signal, dtype=int)
