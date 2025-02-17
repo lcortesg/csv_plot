@@ -13,6 +13,7 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 from PIL import Image
+import plotly.graph_objects as go
 im = Image.open("assets/logos/favicon.png")
 st.set_page_config(
     page_title="CSV Handler",
@@ -22,75 +23,77 @@ st.set_page_config(
 
 def csv_plot():
 
-    min_floor = 5
-    percentile = 99.8
-    quantile = percentile / 100
-    st.markdown("# CSV Force Plot 📈")
-    st.sidebar.markdown("# CSV Force Plot 📈")
+    
+    st.markdown("# CSV Plot 📈")
+    st.sidebar.markdown("# CSV Plot 📈")
 
-    uploaded_files = st.file_uploader(
-        "Elige los archivos CSV para graficar",
+    uploaded_file = st.file_uploader(
+        "Elige el archivo CSV para graficar",
         type=["csv"],
-        accept_multiple_files=True,
-        help="Selecciona uno o más archivos CSV para graficar",
+        accept_multiple_files=False,
+        help="Selecciona un archivo CSV para graficar",
     )
+        
+    if uploaded_file:
+        filename = uploaded_file.name
+        dataframe = pd.read_csv(uploaded_file)
+        #st.write(dataframe)
+        cols = []
+        for col in dataframe:
+            cols.append(col)
+        #st.write(cols)
 
-    if len(uploaded_files) > 0:
-
-        all_options = ["Máximo", "Valor Medio", "Desviación Estándar", "Mediana", "Varianza"]
-
-        options = st.multiselect(
-            "¿Que quieres graficar?",
-            all_options,
-            ["Máximo", "Valor Medio"],
+        col = st.selectbox(
+            "Seleccionar variable",
+            cols,
         )
 
-        for uploaded_file in uploaded_files:
+        min_floor = st.number_input("Piso de ruido", 0, 3000, 100, 100)
+        percentile = st.number_input("Percentil", 95.0, 100.0, 100.0, 0.1)
+        quantile = percentile / 100
 
-            filename = uploaded_file.name
-            dataframe = pd.read_csv(uploaded_file)
-            dataframe.rename(
-                columns={"Unnamed: 0": "Tiempo", "0": "Fuerza"}, inplace=True
-            )
-            tiempo = dataframe["Tiempo"]
-            fuerza = dataframe["Fuerza"]
-            fuerza_nz = []
+        fuerza = dataframe[col].tolist()
+        fuerza_nz = []
+        for value in fuerza:
+            if abs(value) >= min_floor:
+                fuerza_nz.append(value)
+        
+        data_max =  np.round(np.max(np.percentile(fuerza, percentile)), 1)
+        data_mean = np.round(np.mean(fuerza_nz), 1)
+        data_std = np.round(np.std(fuerza_nz), 1)
+        data_var = np.round(np.var(fuerza_nz), 1)
+        data_med = np.round(np.median(fuerza_nz), 1)
 
-            for value in fuerza:
-                if abs(value) >= min_floor:
-                    fuerza_nz.append(value)
+        vars = {
+            f"Máximo": data_max,
+            f"Valor Medio": data_mean,
+            f"Desviación Estándar": data_std,
+            #f"Varianza": data_var,
+            f"Mediana": data_med,
+        }
 
-            data_max = np.round(np.max(np.percentile(fuerza, percentile)), 1)
-            data_mean = np.round(np.mean(fuerza_nz), 1)
-            data_std = np.round(np.std(fuerza_nz), 1)
-            data_var = np.round(np.var(fuerza_nz), 1)
-            data_med = np.round(np.median(fuerza_nz), 1)
+        variables = {
+            f"Máximo": len(fuerza)*[data_max],
+            f"Valor Medio": len(fuerza)*[data_mean],
+            f"Desviación Estándar": len(fuerza)*[data_std],
+            #f"Varianza": len(fuerza)*[data_var],
+            f"Mediana": len(fuerza)*[data_med],
+        }
 
-            variables = {
-                "Tiempo": tiempo,
-                "Fuerza": fuerza,
-                f"Máximo": data_max,
-                f"Valor Medio": data_mean,
-                f"Desviación Estándar": data_std,
-                f"Varianza": data_var,
-                f"Mediana": data_med,
-            }
+        all_options = ["Máximo", "Valor Medio", "Desviación Estándar", "Mediana"]
 
-            df = pd.DataFrame(variables)
-            df = df.set_index('Tiempo')
+        options = st.multiselect(
+            "Estadísticas",
+            all_options,
+            ["Máximo"],
+        )
 
-            for option in all_options:
-                if option not in options:
-                    df = df.drop(f'{option}', axis=1)
-
-            st.subheader(filename)
-            st.line_chart(df)
-
-            data_aux = variables
-            del data_aux["Tiempo"]
-            del data_aux["Fuerza"]
-            st.write(data_aux)
-
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(y=fuerza, mode='lines', name=col))
+        for option in options:
+            fig.add_trace(go.Scatter(y=variables[option], mode='lines', name=option))
+        st.plotly_chart(fig)
+        st.write(vars)
         return True
 
     return False
