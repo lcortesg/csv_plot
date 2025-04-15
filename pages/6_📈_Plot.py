@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-@file    : CSV Plotter
-@brief   : Handles CSV file plotting.
+@file    : 6_📈_Plot.py
+@brief   : Handles CSV plotting.
 @date    : 2022/08/12
 @version : 1.0.0
 @author  : Lucas Cortés.

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-@file    : CSV Merger
-@brief   : Handles CSV file merging.
+@file    : 8_🪢_Merge.py
+@brief   : Handles CSV merging.
 @date    : 2022/08/12
 @version : 1.0.0
 @author  : Lucas Cortés.

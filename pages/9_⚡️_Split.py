@@ -1,6 +1,6 @@
 """
-@file    : CSV Splitter
-@brief   : Handles CSV file splitting.
+@file    : 9_⚡️_Split.py
+@brief   : Handles CSV splitting.
 @date    : 2022/08/12
 @version : 1.0.0
 @author  : Lucas Cortés.

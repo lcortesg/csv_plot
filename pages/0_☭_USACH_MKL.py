@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-@file    : CSV Converter
-@brief   : Handles TXT to CSV file conversion.
+@file    : 0_☭_USACH_MKL.py
+@brief   : Handles MKL processing.
 @date    : 2024/04/22
 @version : 2.0.1
 @author  : Lucas Cortés.

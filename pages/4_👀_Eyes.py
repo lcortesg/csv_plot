@@ -1,3 +1,13 @@
+# -*- coding: utf-8 -*-
+"""
+@file    : 4_👀_Eyes.py
+@brief   : Handles EMG processing.
+@date    : 2024/08/22
+@version : 1.0.0
+@author  : Lucas Cortés.
+@contact : lucas.cortes@lanek.cl.
+"""
+
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt

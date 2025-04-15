@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-@file    : 3_📈_Procesar_EMG.py
+@file    : 2_💪_EMG.py
 @brief   : Handles EMG processing
 @date    : 2024/08/22
 @version : 1.0.0
