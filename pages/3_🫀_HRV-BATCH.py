@@ -155,11 +155,11 @@ def hrv_comp():
     files = st.file_uploader("Cargar archivo CSV con data (bpm)", type="csv", accept_multiple_files=True)
     results = []
     if files:
-        plots = st.toggle("Mostrar gráficos")
-        datos = st.toggle("Mostrar datos")
-        temps = st.toggle("Resultados temporales")
-        freqs = st.toggle("Resultados en frecuencia")
-        res = st.toggle("Mostrar resultados")
+        plots = st.sidebar.toggle("Mostrar gráficos")
+        datos = st.sidebar.toggle("Mostrar datos")
+        temps = st.sidebar.toggle("Resultados temporales")
+        freqs = st.sidebar.toggle("Resultados en frecuencia")
+        res = st.sidebar.toggle("Mostrar resultados")
         for file in files:
             name = file.name
             # Read CSV file, skipping the first two rows
