@@ -196,7 +196,7 @@ def hrv_comp():
         )
             
     else:
-        st.info("Subir archivo para realizar análisis")
+        st.info("Subir archivos para realizar análisis")
 
 def main():
     hrv_comp()

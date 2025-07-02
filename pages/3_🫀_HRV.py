@@ -31,7 +31,7 @@ st.set_page_config(
 
 def data_cleaning(data):
     data.replace(0, np.nan, inplace=True) 
-    if st.toggle("Mostrar información"):
+    if st.sidebar.toggle("Mostrar información"):
         st.write("### Información")
         f2r = data.head(1)
         for i in f2r.keys():
@@ -65,7 +65,7 @@ def data_extraction(data):
     temp = []
     if 'Temperatures (C)' in data.columns:
         temp = data['Temperatures (C)'].values
-        showTemp = st.toggle("¿Mostrar temperaturas?")
+        showTemp = st.sidebar.toggle("¿Mostrar temperaturas?")
     return hrvalues, rr_intervals, ts, temp, showTemp
 
 
@@ -124,7 +124,7 @@ def data_analysis(rr_intervals):
                     st.warning(f"Advertencia: {warning.message}")
 
 
-        if st.toggle("Resultados temporales"):
+        if st.sidebar.toggle("Resultados temporales"):
             if method == "PYHRV": 
                 st.write(time_domain_results[20])
             for i in time_domain_results.keys():
@@ -132,7 +132,7 @@ def data_analysis(rr_intervals):
                     **{i}**: {time_domain_results[i]}\n
                     """)
         if method != "HEARTPY":
-            if st.toggle("Resultados en Frecuencia"):
+            if st.sidebar.toggle("Resultados en Frecuencia"):
                 if method == "PYHRV": 
                     st.write(frequency_domain_results[8])
                 for i in frequency_domain_results.keys():
@@ -157,7 +157,7 @@ def hrv_comp():
         data = data_cleaning(data)
         
         # Display the raw data
-        if st.toggle("Mostrar datos"):
+        if st.sidebar.toggle("Mostrar datos"):
             st.write("### Raw Data")
             st.write(data)
 
