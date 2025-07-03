@@ -63,6 +63,8 @@ def data_extraction(data):
         rr_intervals = data['RR'].values
         rr_intervals = [int(x) for x in rr_intervals if not math.isnan(x)]
     ts = list(range(len(hrvalues)))
+    if "TimeStamp" in data.columns:
+        ts = data["TimeStamp"].values
     if "DateTime" in data.columns:
         ts = data["DateTime"].values
     showTemp = False
