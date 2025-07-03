@@ -57,10 +57,14 @@ def data_extraction(data):
     if 'HR' in data.columns:
         hrvalues = data['HR'].values
         hrvalues = [int(x) for x in hrvalues if not math.isnan(x)]
-        rr_intervals = [60000 / x for x in hrvalues]
+        if 'RR' not in data.columns:
+            rr_intervals = [60000 / x for x in hrvalues]
+    if "RR" in data.columns:
+        rr_intervals = data['RR'].values
+        rr_intervals = [int(x) for x in rr_intervals if not math.isnan(x)]
     ts = list(range(len(hrvalues)))
-    if "TimeStamp" in data.columns:
-        ts = data["TimeStamp"].values
+    if "DateTime" in data.columns:
+        ts = data["DateTime"].values
     showTemp = False
     temp = []
     if 'Temperatures (C)' in data.columns:
