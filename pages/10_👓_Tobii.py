@@ -97,38 +97,51 @@ def data_extraction(dataJ, dataN):
     Extract left/right eye signals from juvenile and target data,
     flatten to 1-D arrays, and interpolate missing values.
     """
-    def flatten_and_interpolate(series):
-        if isinstance(series, pd.DataFrame):
-            series = series.iloc[:,0]
-        arr = np.asarray(series).flatten()
-        
-        # Interpolate missing values
-        arr_interp = pd.Series(arr).interpolate(method='linear', limit_direction='both').to_numpy()
-        
-        # Remove DC
-        arr_demean = arr_interp - np.mean(arr_interp)
-        
+
+    def interpolate(arr):
+        return pd.Series(arr).interpolate(method='linear', limit_direction='both').to_numpy()
+    
+    def demean(arr):
+        return arr - np.mean(arr)
+    
+    def normalize(arr):
         # Normalize to unit variance
-        std = np.std(arr_demean)
+        std = np.std(arr)
         if std != 0:
-            arr_normalized = arr_demean / std
+            arr_normalized = arr / std
         else:
-            arr_normalized = arr_demean  # if std=0, leave as is
+            arr_normalized = arr  # if std=0, leave as is
         
         return arr_normalized
 
+    def flatten(series, int=True, dc=True, norm=True):
+        if isinstance(series, pd.DataFrame):
+            series = series.iloc[:,0]
+        arr = np.asarray(series).flatten()
+
+        if int:
+            arr = interpolate(arr)
+        
+        if dc:
+            arr = demean(arr)
+
+        if norm:
+            arr = normalize(arr)
+        
+        return arr
+        
     # Left eye
-    jplx = flatten_and_interpolate(dataJ["X_FILT_L"])
-    jply = flatten_and_interpolate(dataJ["Y_FILT_L"])
+    jplx = flatten(dataJ["X_FILT_L"])
+    jply = flatten(dataJ["Y_FILT_L"])
     # Right eye
-    jprx = flatten_and_interpolate(dataJ["X_FILT_R"])
-    jpry = flatten_and_interpolate(dataJ["Y_FILT_R"])
+    jprx = flatten(dataJ["X_FILT_R"])
+    jpry = flatten(dataJ["Y_FILT_R"])
     
     # Target signals
-    tplx = flatten_and_interpolate(dataN["Pupil position left X"])
-    tply = flatten_and_interpolate(dataN["Pupil position left Y"])
-    tprx = flatten_and_interpolate(dataN["Pupil position right X"])
-    tpry = flatten_and_interpolate(dataN["Pupil position right Y"])
+    tplx = flatten(dataN["Pupil position left X"])
+    tply = flatten(dataN["Pupil position left Y"])
+    tprx = flatten(dataN["Pupil position right X"])
+    tpry = flatten(dataN["Pupil position right Y"])
     
     return jplx, jply, jprx, jpry, tplx, tply, tprx, tpry
         
@@ -138,28 +151,28 @@ def data_analysis(jplx, jply, jprx, jpry, tplx, tply, tprx, tpry):
     plx = dtw.warping_path(jplx, tplx)
     figure, axes = dtwvis.plot_warping(jplx, tplx, plx)
     mean_dist = dlx/len(jplx)
-    st.write(f"Left eye, X coordinate, mean DTW: {mean_dist}")
+    st.subheader(f"Left eye, X coordinate, mean DTW: {mean_dist}", divider=True)
     st.pyplot(figure)
 
     dly = dtw.distance(jply, tply)
     ply = dtw.warping_path(jply, tply)
     figure, axes = dtwvis.plot_warping(jply, tply, ply)
-    mean_dist = dlx/len(jply)
-    st.write(f"Left eye, Y coordinate, mean DTW: {mean_dist}")
+    mean_dist = dly/len(jply)
+    st.subheader(f"Left eye, Y coordinate, mean DTW: {mean_dist}", divider=True)
     st.pyplot(figure)
 
     drx = dtw.distance(jprx, tprx)
     prx = dtw.warping_path(jprx, tprx)
     figure, axes = dtwvis.plot_warping(jprx, tprx, prx)
-    mean_dist = dlx/len(jprx)
-    st.write(f"Right eye, X coordinate, mean DTW: {mean_dist}")
+    mean_dist = drx/len(jprx)
+    st.subheader(f"Right eye, X coordinate, mean DTW: {mean_dist}", divider=True)
     st.pyplot(figure)
 
     dry = dtw.distance(jpry, tpry)
     pry = dtw.warping_path(jpry, tpry)
     figure, axes = dtwvis.plot_warping(jpry, tpry, pry)
-    mean_dist = dlx/len(jpry)
-    st.write(f"Right eye, Y coordinate, mean DTW: {mean_dist}")
+    mean_dist = dry/len(jpry)
+    st.subheader(f"Right eye, Y coordinate, mean DTW: {mean_dist}", divider=True)
     st.pyplot(figure)
     
     
@@ -168,12 +181,10 @@ def data_analysis(jplx, jply, jprx, jpry, tplx, tply, tprx, tpry):
     """
     Compute DTW distances and warping paths for left/right eye signals
     using FastDTW.
-  
-    # Left eye
+
     dlx, plx = fastdtw(jplx, tplx, dist=euclidean)
     dly, ply = fastdtw(jply, tply, dist=euclidean)
 
-    # Right eye
     drx, prx = fastdtw(jprx, tprx, dist=euclidean)
     dry, pry = fastdtw(jpry, tpry, dist=euclidean)"""
 
@@ -216,7 +227,7 @@ def tobii_comp():
             data_analysis(jplx, jply, jprx, jpry, tplx, tply, tprx, tpry)
             
     else:
-        st.info("Subir archivo para realizar análisis")
+        st.info("Subir archivos para realizar análisis")
 
 
 def main():
