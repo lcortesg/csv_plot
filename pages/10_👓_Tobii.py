@@ -114,7 +114,7 @@ def data_extraction(dataJ, dataN):
         
         return arr_normalized
 
-    def flatten(series, int=True, dc=True, norm=True):
+    def flatten(series, int=True, filt=True, norm=True):
         if isinstance(series, pd.DataFrame):
             series = series.iloc[:,0]
         arr = np.asarray(series).flatten()
@@ -122,7 +122,7 @@ def data_extraction(dataJ, dataN):
         if int:
             arr = interpolate(arr)
         
-        if dc:
+        if filt:
             arr = demean(arr)
 
         if norm:
@@ -174,10 +174,7 @@ def data_analysis(jplx, jply, jprx, jpry, tplx, tply, tprx, tpry):
     mean_dist = dry/len(jpry)
     st.subheader(f"Right eye, Y coordinate, mean DTW: {mean_dist}", divider=True)
     st.pyplot(figure)
-    
-    
 
-    
     """
     Compute DTW distances and warping paths for left/right eye signals
     using FastDTW.
