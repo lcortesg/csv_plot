@@ -177,7 +177,6 @@ def data_analysis(jplx, jply, jprx, jpry, tplx, tply, tprx, tpry):
     drx, prx = fastdtw(jprx, tprx, dist=euclidean)
     dry, pry = fastdtw(jpry, tpry, dist=euclidean)"""
 
-    return dlx, dly, drx, dry
 
 
 
@@ -214,7 +213,7 @@ def tobii_comp():
                 st.write(data_N)
 
             jplx, jply, jprx, jpry, tplx, tply, tprx, tpry = data_extraction(data_J, data_N)
-            dlx, dly, drx, dry, plx, ply, prx, pry = data_analysis(jplx, jply, jprx, jpry, tplx, tply, tprx, tpry)
+            data_analysis(jplx, jply, jprx, jpry, tplx, tply, tprx, tpry)
             
     else:
         st.info("Subir archivo para realizar análisis")
