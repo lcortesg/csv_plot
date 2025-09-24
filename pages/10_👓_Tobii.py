@@ -147,6 +147,9 @@ def data_extraction(dataJ, dataN):
         
 
 def data_analysis(jplx, jply, jprx, jpry, tplx, tply, tprx, tpry):
+    """
+    Perform DTW analysis and visualization for left/right eye signals.
+    """
     dlx = dtw.distance(jplx, tplx)
     plx = dtw.warping_path(jplx, tplx)
     figure, axes = dtwvis.plot_warping(jplx, tplx, plx)
@@ -185,6 +188,8 @@ def data_analysis(jplx, jply, jprx, jpry, tplx, tply, tprx, tpry):
     drx, prx = fastdtw(jprx, tprx, dist=euclidean)
     dry, pry = fastdtw(jpry, tpry, dist=euclidean)"""
 
+    # Agregar análisis adicionales: Histograma por cada ojo y coordenada. FFT de cada ojo y coordenada.
+    
 
 
 
@@ -193,7 +198,7 @@ def tobii_comp():
     st.title("Análisis Tobii 👓")
     st.sidebar.markdown("# Análisis Tobii 👓")
 
-    
+    # Cargar archivos CSV
     datos_josefa_L = st.file_uploader("Cargar archivo CSV con datos pupila izquierda", type=["csv"])
     datos_josefa_R = st.file_uploader("Cargar archivo CSV con datos pupilas derecha", type=["csv"])
 
@@ -211,8 +216,8 @@ def tobii_comp():
                 data = pd.read_csv(uploaded_file)
             elif ext == "xlsm":
                 data = pd.read_excel(uploaded_file, engine="openpyxl")
-            data = data_cleaning(data)
-            data_N = subsample_to_match(data_J, data)
+            data = data_cleaning(data) # Filtrar datos por sensor
+            data_N = subsample_to_match(data_J, data) # Subsamplear para igualar tamaño
             
             # Display the raw data
             if st.sidebar.toggle("Mostrar datos"):
@@ -220,8 +225,8 @@ def tobii_comp():
                 st.write(data_J)
                 st.write(data_N)
 
-            jplx, jply, jprx, jpry, tplx, tply, tprx, tpry = data_extraction(data_J, data_N)
-            data_analysis(jplx, jply, jprx, jpry, tplx, tply, tprx, tpry)
+            jplx, jply, jprx, jpry, tplx, tply, tprx, tpry = data_extraction(data_J, data_N) # Extraer señales de ojos
+            data_analysis(jplx, jply, jprx, jpry, tplx, tply, tprx, tpry) # Análisis de datos
             
     else:
         st.info("Subir archivos para realizar análisis")
