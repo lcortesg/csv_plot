@@ -38,7 +38,7 @@ def merge_eyes(left_df, right_df, on="frame", suffixes=("_L", "_R")):
 
     Parameters
     ----------
-    left_df : pd.DataFrame
+    left_df : pd.DatFrame
         DataFrame for the left eye.
     right_df : pd.DataFrame
         DataFrame for the right eye.
@@ -144,7 +144,7 @@ def data_extraction(dataJ, dataN):
     tpry = flatten(dataN["Pupil position right Y"])
     
     return jplx, jply, jprx, jpry, tplx, tply, tprx, tpry
-        
+      
 
 def data_analysis(jplx, jply, jprx, jpry, tplx, tply, tprx, tpry):
     """
@@ -189,7 +189,7 @@ def data_analysis(jplx, jply, jprx, jpry, tplx, tply, tprx, tpry):
     dry, pry = fastdtw(jpry, tpry, dist=euclidean)"""
 
     # Agregar análisis adicionales: Histograma por cada ojo y coordenada. FFT de cada ojo y coordenada.
-    
+
 
 
 
@@ -198,6 +198,7 @@ def tobii_comp():
     st.title("Análisis Tobii 👓")
     st.sidebar.markdown("# Análisis Tobii 👓")
 
+    st.write("1. Cargar datos procesados del algoritmo:")
     # Cargar archivos CSV
     datos_josefa_L = st.file_uploader("Cargar archivo CSV con datos pupila izquierda", type=["csv"])
     datos_josefa_R = st.file_uploader("Cargar archivo CSV con datos pupilas derecha", type=["csv"])
@@ -208,6 +209,7 @@ def tobii_comp():
         data_R = pd.read_csv(datos_josefa_R)
         data_J = merge_eyes(data_L, data_R, on="Frame", suffixes=("_L", "_R"))
         # Upload CSV file
+        st.write("2. Cargar datos procesados con Tobii:")
         uploaded_file = st.file_uploader("Cargar archivo XLSM con datos Tobii", type=["xlsm"])
 
         if uploaded_file:
@@ -225,8 +227,11 @@ def tobii_comp():
                 st.write(data_J)
                 st.write(data_N)
 
-            jplx, jply, jprx, jpry, tplx, tply, tprx, tpry = data_extraction(data_J, data_N) # Extraer señales de ojos
-            data_analysis(jplx, jply, jprx, jpry, tplx, tply, tprx, tpry) # Análisis de datos
+            st.write("3. Analizando los datos...")
+            with st.spinner("Analizando los datos, por favor espere..."):
+                # Extraer señales de ojos
+                jplx, jply, jprx, jpry, tplx, tply, tprx, tpry = data_extraction(data_J, data_N) # Extraer señales de ojos
+                data_analysis(jplx, jply, jprx, jpry, tplx, tply, tprx, tpry) # Análisis de datos
             
     else:
         st.info("Subir archivos para realizar análisis")
