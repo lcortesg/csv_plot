@@ -23,6 +23,7 @@ from fastdtw import fastdtw
 from scipy.spatial.distance import euclidean
 from dtaidistance import dtw
 from dtaidistance import dtw_visualisation as dtwvis
+from scipy.fft import fft, fftfreq
 
 im = Image.open("assets/logos/favicon.png")
 st.set_page_config(
@@ -178,19 +179,67 @@ def data_analysis(jplx, jply, jprx, jpry, tplx, tply, tprx, tpry):
     st.subheader(f"Right eye, Y coordinate, mean DTW: {mean_dist}", divider=True)
     st.pyplot(figure)
 
+    
+    #Compute DTW distances and warping paths for left/right eye signals
+    #using FastDTW.
+
+    #dlx, plx = fastdtw(jplx, tplx, dist=euclidean)
+    #dly, ply = fastdtw(jply, tply, dist=euclidean)
+
+    #drx, prx = fastdtw(jprx, tprx, dist=euclidean)
+    #dry, pry = fastdtw(jpry, tpry, dist=euclidean)
+
+
+
+def histograma(jplx, jply, jprx, jpry, tplx, tply, tprx, tpry):
     """
-    Compute DTW distances and warping paths for left/right eye signals
-    using FastDTW.
+    Genera histogramas comparativos entre las señales de los ojos y las señales objetivo.
+    """
 
-    dlx, plx = fastdtw(jplx, tplx, dist=euclidean)
-    dly, ply = fastdtw(jply, tply, dist=euclidean)
+    señales = [
+        ("Ojo Izquierdo X", jplx, tplx),
+        ("Ojo Izquierdo Y", jply, tply),
+        ("Ojo Derecho X", jprx, tprx),
+        ("Ojo Derecho Y", jpry, tpry),
+    ]
 
-    drx, prx = fastdtw(jprx, tprx, dist=euclidean)
-    dry, pry = fastdtw(jpry, tpry, dist=euclidean)"""
+    for nombre, señal1, señal2 in señales:
+        fig, ax = plt.subplots()
+        ax.hist(señal1, bins=30, alpha=0.5, label="Juvenil", color='blue')
+        ax.hist(señal2, bins=30, alpha=0.5, label="Target", color='orange')
+        ax.set_title(f"Histograma comparativo - {nombre}")
+        ax.set_xlabel("Valor")
+        ax.set_ylabel("Frecuencia")
+        ax.legend()
+        st.pyplot(fig)
 
-    # Agregar análisis adicionales: Histograma por cada ojo y coordenada. FFT de cada ojo y coordenada.
+def fft_comparacion(jplx, jply, jprx, jpry, tplx, tply, tprx, tpry, fs=60):
+    """
+    Calcula y grafica la FFT de las señales comparadas para analizar sus componentes en frecuencia.
+    fs: frecuencia de muestreo (Hz), por defecto 60 Hz.
+    """
 
+    señales = [
+        ("Ojo Izquierdo X", jplx, tplx),
+        ("Ojo Izquierdo Y", jply, tply),
+        ("Ojo Derecho X", jprx, tprx),
+        ("Ojo Derecho Y", jpry, tpry),
+    ]
 
+    for nombre, señal1, señal2 in señales:
+        N = min(len(señal1), len(señal2))
+        f = fftfreq(N, 1/fs)[:N//2]
+        fft1 = np.abs(fft(señal1[:N]))[:N//2]
+        fft2 = np.abs(fft(señal2[:N]))[:N//2]
+
+        fig, ax = plt.subplots()
+        ax.plot(f, fft1, label="Juvenil", color='blue')
+        ax.plot(f, fft2, label="Target", color='orange')
+        ax.set_title(f"FFT comparativa - {nombre}")
+        ax.set_xlabel("Frecuencia (Hz)")
+        ax.set_ylabel("Magnitud")
+        ax.legend()
+        st.pyplot(fig)
 
 
 def tobii_comp():
@@ -227,11 +276,17 @@ def tobii_comp():
                 st.write(data_J)
                 st.write(data_N)
 
-            st.write("3. Analizando los datos...")
+            st.write("3. Análisis de datos")
             with st.spinner("Analizando los datos, por favor espere..."):
                 # Extraer señales de ojos
                 jplx, jply, jprx, jpry, tplx, tply, tprx, tpry = data_extraction(data_J, data_N) # Extraer señales de ojos
+                st.write("Comparación con DTW:")
                 data_analysis(jplx, jply, jprx, jpry, tplx, tply, tprx, tpry) # Análisis de datos
+                # Comparación con histograma y FFT
+                st.write("Comparación con Histograma:")
+                histograma(jplx, jply, jprx, jpry, tplx, tply, tprx, tpry)
+                st.write("Comparación con FFT:")
+                fft_comparacion(jplx, jply, jprx, jpry, tplx, tply, tprx, tpry)
             
     else:
         st.info("Subir archivos para realizar análisis")
