@@ -194,6 +194,7 @@ def data_analysis(jplx, jply, jprx, jpry, tplx, tply, tprx, tpry):
 def histograma(jplx, jply, jprx, jpry, tplx, tply, tprx, tpry):
     """
     Genera histogramas comparativos entre las señales de los ojos y las señales objetivo.
+    Compara la distribución de valores de cada señal.
     """
 
     señales = [
@@ -217,6 +218,7 @@ def fft_comparacion(jplx, jply, jprx, jpry, tplx, tply, tprx, tpry, fs=60):
     """
     Calcula y grafica la FFT de las señales comparadas para analizar sus componentes en frecuencia.
     fs: frecuencia de muestreo (Hz), por defecto 60 Hz.
+    Compara el contenido en frecuencia de cada señal.
     """
 
     señales = [
