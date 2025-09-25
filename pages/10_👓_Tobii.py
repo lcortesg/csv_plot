@@ -205,8 +205,8 @@ def histograma(jplx, jply, jprx, jpry, tplx, tply, tprx, tpry):
 
     for nombre, señal1, señal2 in señales:
         fig, ax = plt.subplots()
-        ax.hist(señal1, bins=30, alpha=0.5, label="Juvenil", color='blue')
-        ax.hist(señal2, bins=30, alpha=0.5, label="Target", color='orange')
+        ax.hist(señal1, bins=30, alpha=0.5, label="Algoritmo", color='blue')
+        ax.hist(señal2, bins=30, alpha=0.5, label="Tobii pro", color='orange')
         ax.set_title(f"Histograma comparativo - {nombre}")
         ax.set_xlabel("Valor")
         ax.set_ylabel("Frecuencia")
@@ -233,8 +233,8 @@ def fft_comparacion(jplx, jply, jprx, jpry, tplx, tply, tprx, tpry, fs=60):
         fft2 = np.abs(fft(señal2[:N]))[:N//2]
 
         fig, ax = plt.subplots()
-        ax.plot(f, fft1, label="Juvenil", color='blue')
-        ax.plot(f, fft2, label="Target", color='orange')
+        ax.plot(f, fft1, label="Algoritmo", color='blue')
+        ax.plot(f, fft2, label="Tobii pro", color='orange')
         ax.set_title(f"FFT comparativa - {nombre}")
         ax.set_xlabel("Frecuencia (Hz)")
         ax.set_ylabel("Magnitud")
