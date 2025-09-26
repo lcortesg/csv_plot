@@ -194,8 +194,9 @@ def data_analysis(jplx, jply, jprx, jpry, tplx, tply, tprx, tpry):
 def histograma(jplx, jply, jprx, jpry, tplx, tply, tprx, tpry):
     """
     Genera histogramas comparativos entre las señales de los ojos y las señales objetivo.
-    Compara la distribución de valores de cada señal.
+    Además, muestra la PDF gaussiana ajustada para cada señal.
     """
+    from scipy.stats import norm
 
     señales = [
         ("Ojo Izquierdo X", jplx, tplx),
@@ -206,11 +207,23 @@ def histograma(jplx, jply, jprx, jpry, tplx, tply, tprx, tpry):
 
     for nombre, señal1, señal2 in señales:
         fig, ax = plt.subplots()
-        ax.hist(señal1, bins=30, alpha=0.5, label="Algoritmo", color='blue')
-        ax.hist(señal2, bins=30, alpha=0.5, label="Tobii pro", color='orange')
-        ax.set_title(f"Histograma comparativo - {nombre}")
+        # Histograma
+        ax.hist(señal1, bins=30, alpha=0.5, label="Algoritmo", color='blue', density=True)
+        ax.hist(señal2, bins=30, alpha=0.5, label="Tobii pro", color='orange', density=True)
+
+        # PDF gaussiana para señal1
+        mu1, std1 = np.mean(señal1), np.std(señal1)
+        x1 = np.linspace(np.min(señal1), np.max(señal1), 100)
+        ax.plot(x1, norm.pdf(x1, mu1, std1), color='blue', linestyle='--', label="PDF Algoritmo")
+
+        # PDF gaussiana para señal2
+        mu2, std2 = np.mean(señal2), np.std(señal2)
+        x2 = np.linspace(np.min(señal2), np.max(señal2), 100)
+        ax.plot(x2, norm.pdf(x2, mu2, std2), color='orange', linestyle='--', label="PDF Tobii pro")
+
+        ax.set_title(f"Histograma y PDF - {nombre}")
         ax.set_xlabel("Valor")
-        ax.set_ylabel("Frecuencia")
+        ax.set_ylabel("Densidad")
         ax.legend()
         st.pyplot(fig)
 
