@@ -217,10 +217,9 @@ def histograma(jplx, jply, jprx, jpry, tplx, tply, tprx, tpry):
 def fft_comparacion(jplx, jply, jprx, jpry, tplx, tply, tprx, tpry, fs=60):
     """
     Calcula y grafica la FFT de las señales comparadas para analizar sus componentes en frecuencia.
+    Además, muestra la frecuencia fundamental de cada señal.
     fs: frecuencia de muestreo (Hz), por defecto 60 Hz.
-    Compara el contenido en frecuencia de cada señal.
     """
-
     señales = [
         ("Ojo Izquierdo X", jplx, tplx),
         ("Ojo Izquierdo Y", jply, tply),
@@ -234,6 +233,12 @@ def fft_comparacion(jplx, jply, jprx, jpry, tplx, tply, tprx, tpry, fs=60):
         fft1 = np.abs(fft(señal1[:N]))[:N//2]
         fft2 = np.abs(fft(señal2[:N]))[:N//2]
 
+        # Ignorar la componente DC (0 Hz) para buscar la frecuencia fundamental
+        idx1 = np.argmax(fft1[1:]) + 1
+        idx2 = np.argmax(fft2[1:]) + 1
+        freq_fund1 = f[idx1]
+        freq_fund2 = f[idx2]
+
         fig, ax = plt.subplots()
         ax.plot(f, fft1, label="Algoritmo", color='blue')
         ax.plot(f, fft2, label="Tobii pro", color='orange')
@@ -243,6 +248,11 @@ def fft_comparacion(jplx, jply, jprx, jpry, tplx, tply, tprx, tpry, fs=60):
         ax.legend()
         st.pyplot(fig)
 
+        st.info(
+            f"Frecuencia fundamental {nombre}: "
+            f"Algoritmo = {freq_fund1:.2f} Hz, "
+            f"Tobii pro = {freq_fund2:.2f} Hz"
+        )
 
 def tobii_comp():
     # Streamlit app setup
