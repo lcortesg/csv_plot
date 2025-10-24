@@ -227,11 +227,12 @@ def histograma(jplx, jply, jprx, jpry, tplx, tply, tprx, tpry):
         ax.legend()
         st.pyplot(fig)
 
-def fft_comparacion(jplx, jply, jprx, jpry, tplx, tply, tprx, tpry, fs=60):
+def fft_comparacion(jplx, jply, jprx, jpry, tplx, tply, tprx, tpry, fs_tobi=100, fs_al=30):
     """
     Calcula y grafica la FFT de las señales comparadas para analizar sus componentes en frecuencia.
     Además, muestra la frecuencia fundamental de cada señal.
-    fs: frecuencia de muestreo (Hz), por defecto 60 Hz.
+    fs_tobi: frecuencia de muestreo (Hz) tobii pro.
+    fs_al: frecuencia de muestreo (Hz) algoritmo.
     """
     señales = [
         ("Ojo Izquierdo X", jplx, tplx),
@@ -240,21 +241,23 @@ def fft_comparacion(jplx, jply, jprx, jpry, tplx, tply, tprx, tpry, fs=60):
         ("Ojo Derecho Y", jpry, tpry),
     ]
 
+    # señal 1: algoritmo, señal 2: tobii
     for nombre, señal1, señal2 in señales:
         N = min(len(señal1), len(señal2))
-        f = fftfreq(N, 1/fs)[:N//2]
+        f_1 = fftfreq(N, 1/fs_al)[:N//2]
+        f_2 = fftfreq(N, 1/fs_tobi)[:N//2]
         fft1 = np.abs(fft(señal1[:N]))[:N//2]
         fft2 = np.abs(fft(señal2[:N]))[:N//2]
 
         # Ignorar la componente DC (0 Hz) para buscar la frecuencia fundamental
         idx1 = np.argmax(fft1[1:]) + 1
         idx2 = np.argmax(fft2[1:]) + 1
-        freq_fund1 = f[idx1]
-        freq_fund2 = f[idx2]
+        freq_fund1 = f_1[idx1]
+        freq_fund2 = f_2[idx2]
 
         fig, ax = plt.subplots()
-        ax.plot(f, fft1, label="Algoritmo", color='blue')
-        ax.plot(f, fft2, label="Tobii pro", color='orange')
+        ax.plot(f_1, fft1, label="Algoritmo", color='blue')
+        ax.plot(f_2, fft2, label="Tobii pro", color='orange')
         ax.set_title(f"FFT comparativa - {nombre}")
         ax.set_xlabel("Frecuencia (Hz)")
         ax.set_ylabel("Magnitud")
