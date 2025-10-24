@@ -23,7 +23,9 @@ from fastdtw import fastdtw
 from scipy.spatial.distance import euclidean
 from dtaidistance import dtw
 from dtaidistance import dtw_visualisation as dtwvis
+from scipy.stats import norm
 from scipy.fft import fft, fftfreq
+from scipy.signal import find_peaks
 
 im = Image.open("assets/logos/favicon.png")
 st.set_page_config(
@@ -196,7 +198,6 @@ def histograma(jplx, jply, jprx, jpry, tplx, tply, tprx, tpry):
     Genera histogramas comparativos entre las señales de los ojos y las señales objetivo.
     Además, muestra la PDF gaussiana ajustada para cada señal.
     """
-    from scipy.stats import norm
 
     señales = [
         ("Ojo Izquierdo X", jplx, tplx),
@@ -227,6 +228,41 @@ def histograma(jplx, jply, jprx, jpry, tplx, tply, tprx, tpry):
         ax.legend()
         st.pyplot(fig)
 
+
+def seleccionar_primer_peak(f, spec, min_freq=0.2, umbral_rel=0.1):
+    """
+    Selecciona el primer peak significativo (más cercano al DC pero no en DC).
+    
+    Parámetros:
+    ------------
+    f : array
+        Vector de frecuencias.
+    spec : array
+        Espectro (magnitud o PSD).
+    min_freq : float
+        Frecuencia mínima para ignorar el DC y ruido de muy baja frecuencia (Hz).
+    umbral_rel : float
+        Umbral relativo respecto al valor máximo del espectro (0–1).
+        Ej: 0.1 -> considera solo picos >10% del máximo.
+    """
+    # Filtrar la parte positiva del espectro
+    mask = f >= min_freq
+    f_pos = f[mask]
+    spec_pos = spec[mask]
+
+    # Buscar picos sobre el umbral relativo
+    height_min = np.max(spec_pos) * umbral_rel
+    peaks, props = find_peaks(spec_pos, height=height_min)
+
+    if len(peaks) == 0:
+        return np.nan  # no se encontró nada
+
+    # Elegir el PRIMER pico (menor frecuencia)
+    primer_pico_idx = peaks[0]
+    freq_primer_pico = f_pos[primer_pico_idx]
+    return freq_primer_pico
+
+
 def fft_comparacion(jplx, jply, jprx, jpry, tplx, tply, tprx, tpry, fs_tobi=100, fs_al=30):
     """
     Calcula y grafica la FFT de las señales comparadas para analizar sus componentes en frecuencia.
@@ -241,34 +277,60 @@ def fft_comparacion(jplx, jply, jprx, jpry, tplx, tply, tprx, tpry, fs_tobi=100,
         ("Ojo Derecho Y", jpry, tpry),
     ]
 
+    umbral_relativo = 0.1  # 10% del pico máximo, ajustable
+    min_freq = 0.2         # ignorar todo por debajo de 0.2 Hz
+
     # señal 1: algoritmo, señal 2: tobii
     for nombre, señal1, señal2 in señales:
         N = min(len(señal1), len(señal2))
+
+        # FFT de las señales
         f_1 = fftfreq(N, 1/fs_al)[:N//2]
         f_2 = fftfreq(N, 1/fs_tobi)[:N//2]
         fft1 = np.abs(fft(señal1[:N]))[:N//2]
         fft2 = np.abs(fft(señal2[:N]))[:N//2]
 
-        # Ignorar la componente DC (0 Hz) para buscar la frecuencia fundamental
-        idx1 = np.argmax(fft1[1:]) + 1
-        idx2 = np.argmax(fft2[1:]) + 1
-        freq_fund1 = f_1[idx1]
-        freq_fund2 = f_2[idx2]
+        # Ignorar la componente DC (0 Hz) y buscar el peak mas significativo siguiente.
+        freq_fund1 = seleccionar_primer_peak(f_1, fft1, min_freq=min_freq, umbral_rel=umbral_relativo)
+        freq_fund2 = seleccionar_primer_peak(f_2, fft2, min_freq=min_freq, umbral_rel=umbral_relativo)
 
+        # Parte original
+        #idx1 = np.argmax(fft1[1:]) + 1
+        #idx2 = np.argmax(fft2[1:]) + 1
+        #freq_fund1 = f_1[idx1]
+        #freq_fund2 = f_2[idx2]
+
+        # Graficos FFT
         fig, ax = plt.subplots()
         ax.plot(f_1, fft1, label="Algoritmo", color='blue')
         ax.plot(f_2, fft2, label="Tobii pro", color='orange')
+
+        if not np.isnan(freq_fund1):
+            ax.axvline(freq_fund1, color='blue', linestyle='--', alpha=0.6)
+        if not np.isnan(freq_fund2):
+            ax.axvline(freq_fund2, color='orange', linestyle='--', alpha=0.6)
+
         ax.set_title(f"FFT comparativa - {nombre}")
         ax.set_xlabel("Frecuencia (Hz)")
         ax.set_ylabel("Magnitud")
         ax.legend()
         st.pyplot(fig)
 
-        st.info(
-            f"Frecuencia fundamental {nombre}: "
-            f"Algoritmo = {freq_fund1:.2f} Hz, "
-            f"Tobii pro = {freq_fund2:.2f} Hz"
-        )
+        #st.info(
+        #    f"Frecuencia fundamental {nombre}: "
+        #    f"Algoritmo = {freq_fund1:.2f} Hz, "
+        #    f"Tobii pro = {freq_fund2:.2f} Hz"
+        #)
+
+        # ---- Mostrar frecuencias ----
+        if np.isnan(freq_fund1) or np.isnan(freq_fund2):
+            st.warning(f"No se pudo estimar la frecuencia fundamental para {nombre}.")
+        else:
+            st.info(
+                f"Frecuencia fundamental {nombre}: "
+                f"Algoritmo = {freq_fund1:.2f} Hz, "
+                f"Tobii pro = {freq_fund2:.2f} Hz"
+            )
 
 def tobii_comp():
     # Streamlit app setup
