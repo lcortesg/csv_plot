@@ -10,7 +10,7 @@
 
 import streamlit as st
 import pandas as pd
-#import openpyxl
+import openpyxl
 import heartpy as hp
 import pyhrv.tools as tools
 import pyhrv.time_domain as td
