@@ -10,7 +10,7 @@
 
 import streamlit as st
 import pandas as pd
-#import openpyxl
+import openpyxl
 import calamine
 import heartpy as hp
 import pyhrv.tools as tools
@@ -357,7 +357,11 @@ def tobii_comp():
             if ext == "csv":
                 data = pd.read_csv(uploaded_file)
             elif ext == "xlsm":
-                data = pd.read_excel(uploaded_file, engine="calamine")
+                try:
+                    data = pd.read_excel(uploaded_file, engine="openpyxl")
+                except ImportError:
+                    st.warning("⚠️ openpyxl not available — trying fallback calamine read")
+                    data = pd.read_excel(uploaded_file, engine="calamine")
             data = data_cleaning(data) # Filtrar datos por sensor
             data_N = subsample_to_match(data_J, data) # Subsamplear para igualar tamaño
             
