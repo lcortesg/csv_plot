@@ -19,6 +19,7 @@ import plotly.graph_objects as go
 import numpy as np
 import math
 import warnings
+import polars as pl
 from hrvanalysis import get_time_domain_features, get_frequency_domain_features, plot_psd, plot_poincare
 from PIL import Image
 im = Image.open("assets/logos/favicon.png")
@@ -53,18 +54,31 @@ def data_cleaning(data):
     return data
 
 
+def identify_columns(data):
+    hr_column = None
+    time_column = None
+    for col in data.columns:
+        if 'HR' in col or 'BPM' in col:
+            hr_column = col
+        if 'Time' in col or 'Timestamp' in col:
+            time_column = col
+        if "Temperatures" in col:
+            temp_column = col   
+    return hr_column, time_column, temp_column
+
 def data_extraction(data):
-    if 'HR' in data.columns:
-        hrvalues = data['HR'].values
+    hr_column, time_column, temp_column = identify_columns(data)
+    if hr_column in data.columns:
+        hrvalues = data[hr_column]#.values
         hrvalues = [int(x) for x in hrvalues if not math.isnan(x)]
         rr_intervals = [60000 / x for x in hrvalues]
     ts = list(range(len(hrvalues)))
-    if "TimeStamp" in data.columns:
-        ts = data["TimeStamp"].values
+    if time_column in data.columns:
+        ts = data[time_column]#.values
     showTemp = False
     temp = []
-    if 'Temperatures (C)' in data.columns:
-        temp = data['Temperatures (C)'].values
+    if temp_column in data.columns:
+        temp = data[temp_column]#.values
         showTemp = st.sidebar.toggle("¿Mostrar temperaturas?")
     return hrvalues, rr_intervals, ts, temp, showTemp
 
@@ -153,8 +167,13 @@ def hrv_comp():
 
     if uploaded_file:
         # Read CSV file, skipping the first two rows
-        data = pd.read_csv(uploaded_file)
-        data = data_cleaning(data)
+        # Read CSV with Polars
+        data = pl.read_csv(
+            uploaded_file,
+            skip_rows=2,
+            encoding="utf8-lossy"  # handles UTF-8 & BOM
+        )
+        #st.dataframe(data)
         
         # Display the raw data
         if st.sidebar.toggle("Mostrar datos"):
