@@ -18,6 +18,5 @@ pyhrv==0.4.1
 heartpy==1.2.7
 hrv-analysis==1.0.5
 nolds==0.5.2
-
-
+polars==1.36.1
 
