@@ -1,3 +1,6 @@
 [theme]
 base = "light"
 font = "monospace"
+
+[server]
+maxUploadSize = 2048
