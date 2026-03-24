@@ -106,7 +106,30 @@ def plot_data(mag_abs, mag_filt, epoch, start_epoch, end_epoch):
 
     st.plotly_chart(fig, use_container_width=True)
 
+def plot_audio(energy_time, energy, cough_times, peaks):
+    fig = go.Figure()
 
+    fig.add_trace(go.Scatter(
+        x=energy_time,
+        y=energy,
+        name="Energy"
+    ))
+
+    fig.add_trace(go.Scatter(
+        x=cough_times,
+        y=energy[peaks],
+        mode="markers",
+        name="Detected coughs",
+        marker=dict(size=10)
+    ))
+
+    fig.update_layout(
+        title="Cough detection",
+        xaxis_title="Time (s)",
+        yaxis_title="Energy"
+    )
+
+    st.plotly_chart(fig, use_container_width=True)
 
 def fix_data(df):
     df["timestamp_s"] = df["timestamp_s"].str.replace(",", ".").astype(float)
@@ -143,7 +166,7 @@ def reset_dir(path):
     p.mkdir(parents=True, exist_ok=True)
 
 
-def process_audio(video_file, output_dir):
+def process_video(video_file, output_dir):
     with tempfile.NamedTemporaryFile(delete=False) as tmp:
         tmp.write(video_file.getbuffer())
         temp_path = tmp.name
@@ -154,16 +177,16 @@ def process_audio(video_file, output_dir):
     fs_audio, audio_data = wavfile.read(f"{output_dir}/audio.wav")
     time_axis = np.arange(len(audio_data)) / fs_audio
 
-    df_audio = pd.DataFrame({
-        "time": time_axis,
-        "left": audio_data[:, 0],
-        "right": audio_data[:, 1],
-        "average": (audio_data[:, 0] + audio_data[:, 1])/2
-    })
+    # df_audio = pd.DataFrame({
+    #     "time": time_axis,
+    #     "left": audio_data[:, 0],
+    #     "right": audio_data[:, 1],
+    #     "average": (audio_data[:, 0] + audio_data[:, 1])/2
+    # })
 
     st.audio(f"{output_dir}/audio.wav")
 
-    audio_f = bandpass(df_audio["average"], fs_audio)
+    audio_f = bandpass((audio_data[:, 0] + audio_data[:, 1])/2, fs_audio)
 
     # -----------------------------
     # Short-time energy calculation
@@ -181,7 +204,7 @@ def process_audio(video_file, output_dir):
     # -----------------------------
     # Peak detection (coughs)
     # -----------------------------
-    threshold = np.mean(energy) + 3*np.std(energy)
+    threshold = np.mean(energy) + 10*np.std(energy)
 
     peaks, properties = find_peaks(
         energy,
@@ -190,48 +213,17 @@ def process_audio(video_file, output_dir):
     )
 
     cough_times = peaks * hop / fs_audio
+    plot_audio(energy_time, energy, cough_times, peaks)
 
-    #st.write("Detected cough times (seconds):")
-    #st.write(cough_times)
-
-
-    fig = go.Figure()
-
-    fig.add_trace(go.Scatter(
-        x=energy_time,
-        y=energy,
-        name="Energy"
-    ))
-
-    fig.add_trace(go.Scatter(
-        x=cough_times,
-        y=energy[peaks],
-        mode="markers",
-        name="Detected coughs",
-        marker=dict(size=10)
-    ))
-
-    fig.update_layout(
-        title="Cough detection",
-        xaxis_title="Time (s)",
-        yaxis_title="Energy"
-    )
-
-    st.plotly_chart(fig, use_container_width=True)
-
-    return cough_times[0]
-
-def process_video(video_file, start, output_dir):
+    start = cough_times[0]
     start += 30
     duration = 60
 
-    # ensure extension
     with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as tmp:
         tmp.write(video_file.getbuffer())
         input_path = tmp.name
 
-    # safe output path
-    output_path = f"{output_dir}/video.mp4" #str(Path(input_path).with_name(Path(input_path).stem + "_clip.mp4"))
+    output_path = f"{output_dir}/video.mp4"
 
     subprocess.run([
         "ffmpeg",
@@ -243,9 +235,9 @@ def process_video(video_file, start, output_dir):
         output_path
     ], check=True)
 
-    st.video(output_path)
+    #st.video(output_path)
 
-    return True
+
 
 
 def process_data(acc_file, ecg_file, output_dir):
@@ -301,18 +293,18 @@ def process_data(acc_file, ecg_file, output_dir):
 
     plot_data(ecg_data["ecg_uV"], ecg_data["ecg_uV"], ecg_data["timestamp_s"], start_epoch, end_epoch)
 
-    st.write(acc_trim)
-    st.write(ecg_trim)
+    #st.write(acc_trim)
+    #st.write(ecg_trim)
 
     acc_trim.to_csv(f"{output_dir}/acc_data.csv", index=False)
     ecg_trim.to_csv(f"{output_dir}/ecg_data.csv", index=False)
 
 def sync_data():
     # Streamlit app setup
-    st.title("Análisis Tobii 👓")
-    st.sidebar.markdown("# Análisis Tobii 👓")
+    st.title("Polar Sync 🐻‍❄️")
+    st.sidebar.markdown("# Polar Sync 🐻‍❄️")
 
-    st.write("1. Cargar datos procesados del algoritmo:")
+    st.write("Cargar datos obtenidos ")
     # Cargar archivos CSV
     acc_file = st.file_uploader("Cargar archivo CSV con datos de aceleración", type=["csv"])
     ecg_file = st.file_uploader("Cargar archivo CSV con datos de electrocardiograma", type=["csv"])
@@ -322,8 +314,7 @@ def sync_data():
         output_dir = "outputs"
         reset_dir(output_dir)
         process_data(acc_file, ecg_file, output_dir)
-        start = process_audio(video_file, output_dir)
-        process_video(video_file, start, output_dir) 
+        process_video(video_file, output_dir) 
 
         zip_data = zip_outputs()
 
