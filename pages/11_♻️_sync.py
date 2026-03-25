@@ -300,34 +300,54 @@ def process_data(acc_file, ecg_file, output_dir):
     ecg_trim.to_csv(f"{output_dir}/ecg_data.csv", index=False)
 
 def sync_data():
-    # Streamlit app setup
     st.title("Polar Sync 🐻‍❄️")
     st.sidebar.markdown("# Polar Sync 🐻‍❄️")
 
-    st.write("Cargar datos obtenidos ")
-    # Cargar archivos CSV
-    acc_file = st.file_uploader("Cargar archivo CSV ACC", type=["csv"])
-    ecg_file = st.file_uploader("Cargar archivo CSV ECG", type=["csv"])
-    video_file = st.file_uploader("Cargar archivo MP4", type=["mp4"])
+    st.write("Cargar datos obtenidos")
 
-    if acc_file and ecg_file and video_file:
-        output_dir = "outputs"
-        reset_dir(output_dir)
-        process_data(acc_file, ecg_file, output_dir)
-        process_video(video_file, output_dir) 
+    # --- ACC ---
+    acc_file = st.file_uploader("Cargar archivo CSV ACC", type=["csv"], key="acc")
 
-        zip_data = zip_outputs()
+    if acc_file:
+        if "acc" not in acc_file.name.lower():
+            st.error("El archivo debe contener 'acc' en el nombre.")
+            st.stop()
 
-        st.sidebar.download_button(
-            label="Descargar Resultados",
-            data=zip_data,
-            file_name="outputs.zip",
-            mime="application/zip"
-        )
+        st.success(f"ACC cargado: {acc_file.name}")
+
+        # --- ECG ---
+        ecg_file = st.file_uploader("Cargar archivo CSV ECG", type=["csv"], key="ecg")
+
+        if ecg_file:
+            if "ecg" not in ecg_file.name.lower():
+                st.error("El archivo debe contener 'ecg' en el nombre.")
+                st.stop()
+
+            st.success(f"ECG cargado: {ecg_file.name}")
+
+            # --- VIDEO ---
+            video_file = st.file_uploader("Cargar archivo MP4", type=["mp4"], key="video")
+
+            if video_file:
+                st.success(f"Video cargado: {video_file.name}")
+
+                output_dir = "outputs"
+                reset_dir(output_dir)
+
+                process_data(acc_file, ecg_file, output_dir)
+                process_video(video_file, output_dir)
+
+                zip_data = zip_outputs()
+
+                st.sidebar.download_button(
+                    label="Descargar Resultados",
+                    data=zip_data,
+                    file_name="outputs.zip",
+                    mime="application/zip"
+                )
 
     else:
-        st.info("Subir archivos a sincronizar")
-
+        st.info("Subir archivo ACC para comenzar")
 
 def main():
     sync_data()
