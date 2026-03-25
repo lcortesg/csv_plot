@@ -326,7 +326,7 @@ def sync_data():
         )
 
     else:
-        st.info("Subir archivos para realizar análisis")
+        st.info("Subir archivos a sincronizar")
 
 
 def main():
