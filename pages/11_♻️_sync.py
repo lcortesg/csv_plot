@@ -65,12 +65,11 @@ def zip_outputs():
     return zip_buffer
 
 
-def plot_data(mag_abs, mag_filt, epoch, start_epoch, end_epoch):
+def plot_data(mag, epoch, start_epoch, end_epoch, peaks=None):
 
     plot_df = pd.DataFrame({
         "timestamp_s": epoch,
-        "abs_mag": mag_abs,
-        "filtered": mag_filt
+        "mag": mag,
     })
 
     fig = go.Figure()
@@ -78,58 +77,35 @@ def plot_data(mag_abs, mag_filt, epoch, start_epoch, end_epoch):
     fig.add_trace(
         go.Scatter(
             x=plot_df["timestamp_s"],
-            y=plot_df["abs_mag"],
+            y=plot_df["mag"],
             mode="lines",
-            name="abs_mag"
+            name="Magnitude"
         )
     )
-
-    fig.add_trace(
-        go.Scatter(
-            x=plot_df["timestamp_s"],
-            y=plot_df["filtered"],
-            mode="lines",
-            name="filtered"
-        )
-    )
+    title = "Trimmed signal" if peaks is None else "Peak detection"
+    if peaks is not None:
+        fig.add_trace(go.Scatter(
+            x=epoch[peaks],
+            y=mag[peaks],
+            mode="markers",
+            name="Peaks",
+            marker=dict(size=10)
+        ))
 
     # Vertical lines
     fig.add_vline(x=start_epoch, line_dash="dash", line_color="green")
     fig.add_vline(x=end_epoch, line_dash="dash", line_color="red")
 
     fig.update_layout(
-        title="Signal Comparison",
+        title=title,
         xaxis_title="timestamp_s",
         yaxis_title="Magnitude",
         legend_title="Signals"
     )
 
-    st.plotly_chart(fig, use_container_width=True)
+    #st.plotly_chart(fig, use_container_width=True)
+    return fig
 
-def plot_audio(energy_time, energy, cough_times, peaks):
-    fig = go.Figure()
-
-    fig.add_trace(go.Scatter(
-        x=energy_time,
-        y=energy,
-        name="Energy"
-    ))
-
-    fig.add_trace(go.Scatter(
-        x=cough_times,
-        y=energy[peaks],
-        mode="markers",
-        name="Detected coughs",
-        marker=dict(size=10)
-    ))
-
-    fig.update_layout(
-        title="Cough detection",
-        xaxis_title="Time (s)",
-        yaxis_title="Energy"
-    )
-
-    st.plotly_chart(fig, use_container_width=True)
 
 def fix_data(df):
     df["timestamp_s"] = df["timestamp_s"].str.replace(",", ".").astype(float)
@@ -175,7 +151,8 @@ def process_video(video_file, output_dir):
     video.audio.write_audiofile(f"{output_dir}/audio.wav")
 
     fs_audio, audio_data = wavfile.read(f"{output_dir}/audio.wav")
-    time_axis = np.arange(len(audio_data)) / fs_audio
+    audio_avg = (audio_data[:, 0] + audio_data[:, 1])/2
+    # time_axis = np.arange(len(audio_data)) / fs_audio
 
     # df_audio = pd.DataFrame({
     #     "time": time_axis,
@@ -184,9 +161,9 @@ def process_video(video_file, output_dir):
     #     "average": (audio_data[:, 0] + audio_data[:, 1])/2
     # })
 
-    st.audio(f"{output_dir}/audio.wav")
+    #st.audio(f"{output_dir}/audio.wav")
 
-    audio_f = bandpass((audio_data[:, 0] + audio_data[:, 1])/2, fs_audio)
+    audio_f = bandpass(audio_avg, fs_audio)
 
     # -----------------------------
     # Short-time energy calculation
@@ -213,11 +190,13 @@ def process_video(video_file, output_dir):
     )
 
     cough_times = peaks * hop / fs_audio
-    plot_audio(energy_time, energy, cough_times, peaks)
-
+    
     start = cough_times[0]
     start += 30
     duration = 60
+    end = start + duration
+
+    vid = plot_data(energy, energy_time, start, end, peaks)
 
     with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as tmp:
         tmp.write(video_file.getbuffer())
@@ -235,53 +214,43 @@ def process_video(video_file, output_dir):
         output_path
     ], check=True)
 
-    #st.video(output_path)
-
-
+    return vid
 
 
 def process_data(acc_file, ecg_file, output_dir):
     acc_data = pd.read_csv(acc_file, sep=";")
     ecg_data = pd.read_csv(ecg_file, sep=";")
-    
     ecg_data = fix_data(ecg_data)
     acc_data = fix_data(acc_data)
-
-    #st.write(acc_data)
-
     acc_data = get_magnitudes(acc_data)
-    #st.write(acc_data)
 
     fs = get_sf(acc_data)
-    st.write(f"Frecuencia de muestreo estimada: {fs:.2f} Hz")
+    #st.write(f"Frecuencia de muestreo estimada: {fs:.2f} Hz")
 
     mag_filt = butter_lowpass_filter(data=acc_data["magnitude_abs"], cutoff=20, fs=fs, order=1)
     acc_data["magnitude_filt"] = mag_filt
 
-    peaks = find_peaks(mag_filt, height=np.mean(mag_filt) + 10*np.std(mag_filt), distance=500)
-    #st.write(peaks)
+    peaks, properties = find_peaks(mag_filt, height=np.mean(mag_filt) + 10*np.std(mag_filt), distance=500)
 
-    inicio = peaks[0][0]
-    st.write(f"peak index: {inicio}")
+    inicio = peaks[0]
+    #st.write(f"peak index: {inicio}")
     epoch_inicio = acc_data["timestamp_s"][inicio]
-    st.write(f"epoch inicio: {epoch_inicio}")
+    #st.write(f"epoch inicio: {epoch_inicio}")
     
     target_epoch = epoch_inicio + 30
-    st.write(f"target epoch: {target_epoch}")
+    #st.write(f"target epoch: {target_epoch}")
 
     start_idx = (acc_data["timestamp_s"] - target_epoch).abs().idxmin()
     start_epoch = acc_data.loc[start_idx, "timestamp_s"]
 
-    st.write(f"start epoch: {start_epoch}")
-    st.write(f"start index: {start_idx}")
+    #st.write(f"start epoch: {start_epoch}")
+    #st.write(f"start index: {start_idx}")
 
     epoch_fin = start_epoch + 60
     end_idx = (acc_data["timestamp_s"] - epoch_fin).abs().idxmin()
     end_epoch = acc_data.loc[end_idx, "timestamp_s"]
-    st.write(f"end epoch: {end_epoch}")
-    st.write(f"end index: {end_idx}")
 
-    plot_data(acc_data["magnitude_abs"], mag_filt, acc_data["timestamp_s"], start_epoch, end_epoch)
+    
 
     acc_trim = acc_data.iloc[start_idx:end_idx]
     start_idx = (ecg_data["timestamp_s"] - start_epoch).abs().idxmin()
@@ -290,64 +259,85 @@ def process_data(acc_file, ecg_file, output_dir):
     end_idx = (ecg_data["timestamp_s"] - epoch_fin).abs().idxmin()
     end_epoch = ecg_data.loc[end_idx, "timestamp_s"]
     ecg_trim = ecg_data.iloc[start_idx:end_idx]
-
-    plot_data(ecg_data["ecg_uV"], ecg_data["ecg_uV"], ecg_data["timestamp_s"], start_epoch, end_epoch)
-
-    #st.write(acc_trim)
-    #st.write(ecg_trim)
-
     acc_trim.to_csv(f"{output_dir}/acc_data.csv", index=False)
     ecg_trim.to_csv(f"{output_dir}/ecg_data.csv", index=False)
+
+
+    acc = plot_data(mag_filt, acc_data["timestamp_s"], start_epoch, end_epoch, peaks)
+    ecg = plot_data(ecg_data["ecg_uV"], ecg_data["timestamp_s"], start_epoch, end_epoch)
+
+    return acc, ecg
 
 def sync_data():
     st.title("Polar Sync 🐻‍❄️")
     st.sidebar.markdown("# Polar Sync 🐻‍❄️")
 
-    st.write("Cargar datos obtenidos")
+    col1, col2, col3 = st.columns(3)
 
     # --- ACC ---
-    acc_file = st.file_uploader("Cargar archivo CSV ACC", type=["csv"], key="acc")
+    with col1:
+        acc_file = st.file_uploader("ACC CSV", type=["csv"], key="acc")
 
-    if acc_file:
-        if "acc" not in acc_file.name.lower():
-            st.error("El archivo debe contener 'acc' en el nombre.")
-            st.stop()
+        acc_valid = False
+        if acc_file:
+            if "acc" not in acc_file.name.lower():
+                st.error("Debe contener 'acc'")
+            else:
+                st.success("ACC ✓")
+                acc_valid = True
 
-        st.success(f"ACC cargado: {acc_file.name}")
+    # --- ECG ---
+    with col2:
+        ecg_file = None
+        ecg_valid = False
 
-        # --- ECG ---
-        ecg_file = st.file_uploader("Cargar archivo CSV ECG", type=["csv"], key="ecg")
+        if acc_valid:
+            ecg_file = st.file_uploader("ECG CSV", type=["csv"], key="ecg")
 
-        if ecg_file:
-            if "ecg" not in ecg_file.name.lower():
-                st.error("El archivo debe contener 'ecg' en el nombre.")
-                st.stop()
+            if ecg_file:
+                if "ecg" not in ecg_file.name.lower():
+                    st.error("Debe contener 'ecg'")
+                else:
+                    st.success("ECG ✓")
+                    ecg_valid = True
+        else:
+            st.info("Subir ACC primero")
 
-            st.success(f"ECG cargado: {ecg_file.name}")
+    # --- VIDEO ---
+    with col3:
+        video_file = None
 
-            # --- VIDEO ---
-            video_file = st.file_uploader("Cargar archivo MP4", type=["mp4"], key="video")
+        if acc_valid and ecg_valid:
+            video_file = st.file_uploader("Video MP4", type=["mp4"], key="video")
 
             if video_file:
-                st.success(f"Video cargado: {video_file.name}")
+                st.success("Video ✓")
+        else:
+            st.info("Subir ACC y ECG")
 
-                output_dir = "outputs"
-                reset_dir(output_dir)
+    # --- Processing ---
+    if acc_valid and ecg_valid and video_file:
+        output_dir = "outputs"
+        reset_dir(output_dir)
 
-                process_data(acc_file, ecg_file, output_dir)
-                process_video(video_file, output_dir)
+        acc, ecg = process_data(acc_file, ecg_file, output_dir)
+        vid = process_video(video_file, output_dir)
+        with col1:
+            st.plotly_chart(acc, use_container_width=True)
+        with col2:
+            st.plotly_chart(ecg, use_container_width=True)
+        with col3:
+            st.plotly_chart(vid, use_container_width=True)
 
-                zip_data = zip_outputs()
+        zip_data = zip_outputs()
 
-                st.sidebar.download_button(
-                    label="Descargar Resultados",
-                    data=zip_data,
-                    file_name="outputs.zip",
-                    mime="application/zip"
-                )
+        st.sidebar.download_button(
+            label="Descargar Resultados",
+            data=zip_data,
+            file_name="outputs.zip",
+            mime="application/zip"
+        )
 
-    else:
-        st.info("Subir archivo ACC para comenzar")
 
 def main():
     sync_data()
