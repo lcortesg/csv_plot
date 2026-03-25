@@ -214,7 +214,7 @@ def process_video(video_file, output_dir):
         output_path
     ], check=True)
 
-    return vid
+    st.plotly_chart(vid, use_container_width=True)
 
 
 def process_data(acc_file, ecg_file, output_dir):
@@ -250,8 +250,6 @@ def process_data(acc_file, ecg_file, output_dir):
     end_idx = (acc_data["timestamp_s"] - epoch_fin).abs().idxmin()
     end_epoch = acc_data.loc[end_idx, "timestamp_s"]
 
-    
-
     acc_trim = acc_data.iloc[start_idx:end_idx]
     start_idx = (ecg_data["timestamp_s"] - start_epoch).abs().idxmin()
     start_epoch = ecg_data.loc[start_idx, "timestamp_s"]
@@ -268,9 +266,57 @@ def process_data(acc_file, ecg_file, output_dir):
 
     return acc, ecg
 
+
+def process_data_acc(acc_file, output_dir):
+    acc_data = pd.read_csv(acc_file, sep=";")
+    acc_data = fix_data(acc_data)
+    acc_data = get_magnitudes(acc_data)
+
+    fs = get_sf(acc_data)
+
+    mag_filt = butter_lowpass_filter(data=acc_data["magnitude_abs"], cutoff=20, fs=fs, order=1)
+    acc_data["magnitude_filt"] = mag_filt
+
+    peaks, properties = find_peaks(mag_filt, height=np.mean(mag_filt) + 10*np.std(mag_filt), distance=500)
+
+    inicio = peaks[0]
+    epoch_inicio = acc_data["timestamp_s"][inicio]
+    target_epoch = epoch_inicio + 30
+    start_idx = (acc_data["timestamp_s"] - target_epoch).abs().idxmin()
+    start_epoch = acc_data.loc[start_idx, "timestamp_s"]
+
+    epoch_fin = start_epoch + 60
+    end_idx = (acc_data["timestamp_s"] - epoch_fin).abs().idxmin()
+    end_epoch = acc_data.loc[end_idx, "timestamp_s"]
+
+    acc_trim = acc_data.iloc[start_idx:end_idx]
+    acc_trim.to_csv(f"{output_dir}/acc_data.csv", index=False)
+    acc = plot_data(mag_filt, acc_data["timestamp_s"], start_epoch, end_epoch, peaks)
+   
+    st.plotly_chart(acc, use_container_width=True)
+
+    return start_epoch
+
+
+def process_data_ecg(ecg_file, output_dir, start_epoch):
+    ecg_data = pd.read_csv(ecg_file, sep=";")
+    ecg_data = fix_data(ecg_data)
+    start_idx = (ecg_data["timestamp_s"] - start_epoch).abs().idxmin()
+    start_epoch = ecg_data.loc[start_idx, "timestamp_s"]
+    epoch_fin = start_epoch + 60
+    end_idx = (ecg_data["timestamp_s"] - epoch_fin).abs().idxmin()
+    end_epoch = ecg_data.loc[end_idx, "timestamp_s"]
+    ecg_trim = ecg_data.iloc[start_idx:end_idx]
+    ecg_trim.to_csv(f"{output_dir}/ecg_data.csv", index=False)
+    ecg = plot_data(ecg_data["ecg_uV"], ecg_data["timestamp_s"], start_epoch, end_epoch)
+    st.plotly_chart(ecg, use_container_width=True)
+
+
 def sync_data():
     st.title("Polar Sync 🐻‍❄️")
     st.sidebar.markdown("# Polar Sync 🐻‍❄️")
+    output_dir = "outputs"
+    reset_dir(output_dir)
 
     col1, col2, col3 = st.columns(3)
 
@@ -284,7 +330,9 @@ def sync_data():
                 st.error("Debe contener 'acc'")
             else:
                 st.success("ACC ✓")
+                start_epoch = process_data_acc(acc_file, output_dir)
                 acc_valid = True
+
 
     # --- ECG ---
     with col2:
@@ -299,6 +347,7 @@ def sync_data():
                     st.error("Debe contener 'ecg'")
                 else:
                     st.success("ECG ✓")
+                    process_data_ecg(ecg_file, output_dir, start_epoch)
                     ecg_valid = True
         else:
             st.info("Subir ACC primero")
@@ -306,29 +355,20 @@ def sync_data():
     # --- VIDEO ---
     with col3:
         video_file = None
+        video_valid = False
 
         if acc_valid and ecg_valid:
             video_file = st.file_uploader("Video MP4", type=["mp4"], key="video")
 
             if video_file:
                 st.success("Video ✓")
+                process_video(video_file, output_dir)
+                video_valid = True
         else:
             st.info("Subir ACC y ECG")
 
     # --- Processing ---
-    if acc_valid and ecg_valid and video_file:
-        output_dir = "outputs"
-        reset_dir(output_dir)
-
-        acc, ecg = process_data(acc_file, ecg_file, output_dir)
-        vid = process_video(video_file, output_dir)
-        with col1:
-            st.plotly_chart(acc, use_container_width=True)
-        with col2:
-            st.plotly_chart(ecg, use_container_width=True)
-        with col3:
-            st.plotly_chart(vid, use_container_width=True)
-
+    if acc_valid and ecg_valid and video_valid:
         zip_data = zip_outputs()
 
         st.sidebar.download_button(
