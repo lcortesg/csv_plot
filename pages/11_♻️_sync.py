@@ -306,9 +306,9 @@ def sync_data():
 
     st.write("Cargar datos obtenidos ")
     # Cargar archivos CSV
-    acc_file = st.file_uploader("Cargar archivo CSV con datos de aceleración", type=["csv"])
-    ecg_file = st.file_uploader("Cargar archivo CSV con datos de electrocardiograma", type=["csv"])
-    video_file = st.file_uploader("Cargar archivo de video", type=["mp4"])
+    acc_file = st.file_uploader("Cargar archivo CSV ACC", type=["csv"])
+    ecg_file = st.file_uploader("Cargar archivo CSV ECG", type=["csv"])
+    video_file = st.file_uploader("Cargar archivo MP4", type=["mp4"])
 
     if acc_file and ecg_file and video_file:
         output_dir = "outputs"
