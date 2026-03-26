@@ -8,20 +8,19 @@
 @contact : lucas.cortes@lanek.cl.
 """
 
-import streamlit as st
-import pandas as pd
-import heartpy as hp
-import pyhrv.tools as tools
-import pyhrv.time_domain as td
-import pyhrv.frequency_domain as fd
-import matplotlib.pyplot as plt
-import plotly.graph_objects as go
-import numpy as np
 import math
-import warnings
+
+import numpy as np
+import pandas as pd
 import polars as pl
-from hrvanalysis import get_time_domain_features, get_frequency_domain_features, plot_psd, plot_poincare
+import heartpy as hp
+import streamlit as st
+import pyhrv.time_domain as td
+import plotly.graph_objects as go
+
 from PIL import Image
+from hrvanalysis import get_time_domain_features, get_frequency_domain_features
+
 im = Image.open("assets/logos/favicon.png")
 st.set_page_config(
     page_title="CSV Handler",
@@ -31,7 +30,7 @@ st.set_page_config(
 
 
 def data_cleaning(data, name):
-    data.replace(0, np.nan, inplace=True) 
+    data.replace(0, np.nan, inplace=True)
     # if st.toggle("Mostrar información", key=f"{name}-info"):
     #     st.write("### Información")
     #     f2r = data.head(1)
@@ -49,7 +48,7 @@ def data_cleaning(data, name):
         # Skip the first row and set the new column names
         data = data[2:]  # Skip the first row
         data.columns = new_column_names  # Set new column names
-        #data = pd.read_csv(uploaded_file, skiprows=2)
+        # data = pd.read_csv(uploaded_file, skiprows=2)
         data.rename(columns={"HR (BPM)": "HR"}, inplace=True)
     return data
 
@@ -58,28 +57,29 @@ def identify_columns(data):
     hr_column = None
     time_column = None
     for col in data.columns:
-        if 'HR' in col or 'BPM' in col:
+        if "HR" in col or "BPM" in col:
             hr_column = col
-        if 'Time' in col or 'Timestamp' in col:
+        if "Time" in col or "Timestamp" in col:
             time_column = col
         if "Temperatures" in col:
-            temp_column = col   
+            temp_column = col
     return hr_column, time_column, temp_column
+
 
 def data_extraction(data):
     hr_column, time_column, temp_column = identify_columns(data)
     if hr_column in data.columns:
-        hrvalues = data[hr_column]#.values
+        hrvalues = data[hr_column]  # .values
         hrvalues = [int(x) for x in hrvalues if not math.isnan(x)]
         rr_intervals = [60000 / x for x in hrvalues]
     ts = list(range(len(hrvalues)))
     if time_column in data.columns:
-        ts = data[time_column]#.values
+        ts = data[time_column]  # .values
     showTemp = False
     temp = []
     if temp_column in data.columns:
-        temp = data[temp_column]#.values
-        #showTemp = st.sidebar.toggle("¿Mostrar temperaturas?")
+        temp = data[temp_column]  # .values
+        # showTemp = st.sidebar.toggle("¿Mostrar temperaturas?")
     return hrvalues, rr_intervals, ts, temp, showTemp
 
 
@@ -87,7 +87,7 @@ def data_plot(hrvalues, rr_intervals, ts, temp, showTemp, name):
     st.write("### BPM & Temp")
     # Create a Plotly figure
     fig = go.Figure()
-    fig.add_trace(go.Scatter(x=ts, y=hrvalues, mode='lines+markers', name="BPM"))
+    fig.add_trace(go.Scatter(x=ts, y=hrvalues, mode="lines+markers", name="BPM"))
     fig.update_layout(
         title="Pulse Over Time",
         xaxis_title="Time (s)",  # Replace with appropriate unit for 'ts'
@@ -95,12 +95,12 @@ def data_plot(hrvalues, rr_intervals, ts, temp, showTemp, name):
         template="plotly_white",  # Optional: Set a clean background style
     )
     if showTemp:
-        fig.add_trace(go.Scatter(x=ts, y=temp, mode='lines+markers', name="Temp"))
+        fig.add_trace(go.Scatter(x=ts, y=temp, mode="lines+markers", name="Temp"))
     st.plotly_chart(fig)
 
     st.write("### Intervalos RR")
     fig = go.Figure()
-    fig.add_trace(go.Scatter(x=ts, y=rr_intervals, mode='lines+markers', name="RR"))
+    fig.add_trace(go.Scatter(x=ts, y=rr_intervals, mode="lines+markers", name="RR"))
     fig.update_layout(
         title="RR Intervals Over Time",
         xaxis_title="Time (s)",  # Replace with appropriate unit for 'ts'
@@ -108,6 +108,7 @@ def data_plot(hrvalues, rr_intervals, ts, temp, showTemp, name):
         template="plotly_white",  # Optional: Set a clean background style
     )
     st.plotly_chart(fig)
+
 
 def data_analysis(rr_intervals, name, temps, freqs):
     methods = ["PYHRV", "HEARTPY", "HRV-ANALYSIS"]
@@ -143,7 +144,7 @@ def data_analysis(rr_intervals, name, temps, freqs):
                         st.markdown(f"""
                             **{i}**: {frequency_domain_results[i]}\n
                             """)
-                        
+
             for variable in variables:
                 if variable in time_domain_results.keys():
                     if variable == "pnni_50":
@@ -154,11 +155,11 @@ def data_analysis(rr_intervals, name, temps, freqs):
                 variable = "lf_hf_ratio"
                 results[f"{method}-{variable}"] = frequency_domain_results[variable]
 
-
         except Exception as e:
             st.error(f"Error procesando datos: {e}")
 
     return results
+
 
 def hrv_comp():
     # Streamlit app setup
@@ -183,9 +184,9 @@ def hrv_comp():
             data = pl.read_csv(
                 file,
                 skip_rows=2,
-                encoding="utf8-lossy"  # handles UTF-8 & BOM
+                encoding="utf8-lossy",  # handles UTF-8 & BOM
             )
-            
+
             if datos or plots or temps or freqs or res:
                 st.write(f"### {name}")
             if datos:
@@ -193,33 +194,34 @@ def hrv_comp():
 
             hrvalues, rr_intervals, ts, temp, showTemp = data_extraction(data)
 
-            if plots:  
+            if plots:
                 data_plot(hrvalues, rr_intervals, ts, temp, showTemp, name)
             result = data_analysis(rr_intervals, name, temps, freqs)
-            results.append(result) 
+            results.append(result)
             if res:
                 st.write(result)
-            
-    
+
     if results:
         results_df = pd.DataFrame(results)
         st.write("### Resultados")
         st.dataframe(results_df)
-        csv = results_df.to_csv(index=False).encode('utf-8')
+        csv = results_df.to_csv(index=False).encode("utf-8")
 
         # Add download button
         st.download_button(
             label="📥 Descargar como CSV",
             data=csv,
             file_name="resultados.csv",
-            mime="text/csv"
+            mime="text/csv",
         )
-            
+
     else:
         st.info("Subir archivos para realizar análisis")
 
+
 def main():
     hrv_comp()
+
 
 if __name__ == "__main__":
     main()

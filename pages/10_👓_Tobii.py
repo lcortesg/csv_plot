@@ -8,23 +8,15 @@
 @contact : lucas.cortes@lanek.cl.
 """
 
-import streamlit as st
-import pandas as pd
-import openpyxl
-import heartpy as hp
-import pyhrv.tools as tools
-import pyhrv.time_domain as td
-import pyhrv.frequency_domain as fd
-import matplotlib.pyplot as plt
-import plotly.graph_objects as go
 import numpy as np
+import pandas as pd
+import streamlit as st
+import matplotlib.pyplot as plt
+
 from PIL import Image
-from fastdtw import fastdtw
-from scipy.spatial.distance import euclidean
-from dtaidistance import dtw
-from dtaidistance import dtw_visualisation as dtwvis
-from scipy.stats import norm
 from scipy.fft import fft, fftfreq
+from scipy.stats import norm
+from dtaidistance import dtw, dtw_visualisation as dtwvis
 from scipy.signal import find_peaks
 
 im = Image.open("assets/logos/favicon.png")
@@ -33,6 +25,7 @@ st.set_page_config(
     page_icon=im,
     layout="wide",
 )
+
 
 def merge_eyes(left_df, right_df, on="frame", suffixes=("_L", "_R")):
     """
@@ -56,6 +49,7 @@ def merge_eyes(left_df, right_df, on="frame", suffixes=("_L", "_R")):
         Merged DataFrame with suffixed column names.
     """
     return pd.merge(left_df, right_df, on=on, suffixes=suffixes)
+
 
 def data_cleaning(data):
     sensors = data["Sensor"].dropna().unique()
@@ -85,11 +79,11 @@ def subsample_to_match(short_df, long_df):
     """
     n_rows = len(short_df)
     long_len = len(long_df)
-    
+
     if long_len <= n_rows:
         # Already short enough
         return long_df.copy()
-    
+
     # Choose evenly spaced indices
     indices = np.linspace(0, long_len - 1, n_rows).astype(int)
     return long_df.iloc[indices].reset_index(drop=True)
@@ -102,11 +96,11 @@ def data_extraction(dataJ, dataN):
     """
 
     def interpolate(arr):
-        return pd.Series(arr).interpolate(method='linear', limit_direction='both').to_numpy()
-    
+        return pd.Series(arr).interpolate(method="linear", limit_direction="both").to_numpy()
+
     def demean(arr):
         return arr - np.mean(arr)
-    
+
     def normalize(arr):
         # Normalize to unit variance
         std = np.std(arr)
@@ -114,83 +108,79 @@ def data_extraction(dataJ, dataN):
             arr_normalized = arr / std
         else:
             arr_normalized = arr  # if std=0, leave as is
-        
+
         return arr_normalized
 
     def flatten(series, int=True, filt=True, norm=True):
         if isinstance(series, pd.DataFrame):
-            series = series.iloc[:,0]
+            series = series.iloc[:, 0]
         arr = np.asarray(series).flatten()
 
         if int:
             arr = interpolate(arr)
-        
+
         if filt:
             arr = demean(arr)
 
         if norm:
             arr = normalize(arr)
-        
+
         return arr
-        
+
     # Left eye
     jplx = flatten(dataJ["X_FILT_L"])
     jply = flatten(dataJ["Y_FILT_L"])
     # Right eye
     jprx = flatten(dataJ["X_FILT_R"])
     jpry = flatten(dataJ["Y_FILT_R"])
-    
+
     # Target signals
     tplx = flatten(dataN["Pupil position left X"])
     tply = flatten(dataN["Pupil position left Y"])
     tprx = flatten(dataN["Pupil position right X"])
     tpry = flatten(dataN["Pupil position right Y"])
-    
+
     return jplx, jply, jprx, jpry, tplx, tply, tprx, tpry
-      
+
 
 def data_analysis(jplx, jply, jprx, jpry, tplx, tply, tprx, tpry):
-    """
-    Perform DTW analysis and visualization for left/right eye signals.
-    """
+    """Perform DTW analysis and visualization for left/right eye signals."""
     dlx = dtw.distance(jplx, tplx)
     plx = dtw.warping_path(jplx, tplx)
     figure, axes = dtwvis.plot_warping(jplx, tplx, plx)
-    mean_dist = dlx/len(jplx)
+    mean_dist = dlx / len(jplx)
     st.subheader(f"Left eye, X coordinate, mean DTW: {mean_dist}", divider=True)
     st.pyplot(figure)
 
     dly = dtw.distance(jply, tply)
     ply = dtw.warping_path(jply, tply)
     figure, axes = dtwvis.plot_warping(jply, tply, ply)
-    mean_dist = dly/len(jply)
+    mean_dist = dly / len(jply)
     st.subheader(f"Left eye, Y coordinate, mean DTW: {mean_dist}", divider=True)
     st.pyplot(figure)
 
     drx = dtw.distance(jprx, tprx)
     prx = dtw.warping_path(jprx, tprx)
     figure, axes = dtwvis.plot_warping(jprx, tprx, prx)
-    mean_dist = drx/len(jprx)
+    mean_dist = drx / len(jprx)
     st.subheader(f"Right eye, X coordinate, mean DTW: {mean_dist}", divider=True)
     st.pyplot(figure)
 
     dry = dtw.distance(jpry, tpry)
     pry = dtw.warping_path(jpry, tpry)
     figure, axes = dtwvis.plot_warping(jpry, tpry, pry)
-    mean_dist = dry/len(jpry)
+    mean_dist = dry / len(jpry)
     st.subheader(f"Right eye, Y coordinate, mean DTW: {mean_dist}", divider=True)
     st.pyplot(figure)
 
-    
-    #Compute DTW distances and warping paths for left/right eye signals
-    #using FastDTW.
+    # Compute DTW distances and warping paths for left/right eye signals
+    # using FastDTW.
 
-    #dlx, plx = fastdtw(jplx, tplx, dist=euclidean)
-    #dly, ply = fastdtw(jply, tply, dist=euclidean)
+    # dlx, plx = fastdtw(jplx, tplx, dist=euclidean)
+    # dly, ply = fastdtw(jply, tply, dist=euclidean)
 
-    #drx, prx = fastdtw(jprx, tprx, dist=euclidean)
-    #dry, pry = fastdtw(jpry, tpry, dist=euclidean)
-
+    # drx, prx = fastdtw(jprx, tprx, dist=euclidean)
+    # dry, pry = fastdtw(jpry, tpry, dist=euclidean)
 
 
 def histograma(jplx, jply, jprx, jpry, tplx, tply, tprx, tpry):
@@ -198,7 +188,6 @@ def histograma(jplx, jply, jprx, jpry, tplx, tply, tprx, tpry):
     Genera histogramas comparativos entre las señales de los ojos y las señales objetivo.
     Además, muestra la PDF gaussiana ajustada para cada señal.
     """
-
     señales = [
         ("Ojo Izquierdo X", jplx, tplx),
         ("Ojo Izquierdo Y", jply, tply),
@@ -209,18 +198,30 @@ def histograma(jplx, jply, jprx, jpry, tplx, tply, tprx, tpry):
     for nombre, señal1, señal2 in señales:
         fig, ax = plt.subplots()
         # Histograma
-        ax.hist(señal1, bins=30, alpha=0.5, label="Algoritmo", color='blue', density=True)
-        ax.hist(señal2, bins=30, alpha=0.5, label="Tobii pro", color='orange', density=True)
+        ax.hist(señal1, bins=30, alpha=0.5, label="Algoritmo", color="blue", density=True)
+        ax.hist(señal2, bins=30, alpha=0.5, label="Tobii pro", color="orange", density=True)
 
         # PDF gaussiana para señal1
         mu1, std1 = np.mean(señal1), np.std(señal1)
         x1 = np.linspace(np.min(señal1), np.max(señal1), 100)
-        ax.plot(x1, norm.pdf(x1, mu1, std1), color='blue', linestyle='--', label="PDF Algoritmo")
+        ax.plot(
+            x1,
+            norm.pdf(x1, mu1, std1),
+            color="blue",
+            linestyle="--",
+            label="PDF Algoritmo",
+        )
 
         # PDF gaussiana para señal2
         mu2, std2 = np.mean(señal2), np.std(señal2)
         x2 = np.linspace(np.min(señal2), np.max(señal2), 100)
-        ax.plot(x2, norm.pdf(x2, mu2, std2), color='orange', linestyle='--', label="PDF Tobii pro")
+        ax.plot(
+            x2,
+            norm.pdf(x2, mu2, std2),
+            color="orange",
+            linestyle="--",
+            label="PDF Tobii pro",
+        )
 
         ax.set_title(f"Histograma y PDF - {nombre}")
         ax.set_xlabel("Valor")
@@ -232,7 +233,7 @@ def histograma(jplx, jply, jprx, jpry, tplx, tply, tprx, tpry):
 def seleccionar_primer_peak(f, spec, min_freq=0.2, umbral_rel=0.1):
     """
     Selecciona el primer peak significativo (más cercano al DC pero no en DC).
-    
+
     Parámetros:
     ------------
     f : array
@@ -278,37 +279,37 @@ def fft_comparacion(jplx, jply, jprx, jpry, tplx, tply, tprx, tpry, fs_tobi=100,
     ]
 
     umbral_relativo = 0.1  # 10% del pico máximo, ajustable
-    min_freq = 0.2         # ignorar todo por debajo de 0.2 Hz
+    min_freq = 0.2  # ignorar todo por debajo de 0.2 Hz
 
     # señal 1: algoritmo, señal 2: tobii
     for nombre, señal1, señal2 in señales:
         N = min(len(señal1), len(señal2))
 
         # FFT de las señales
-        f_1 = fftfreq(N, 1/fs_al)[:N//2]
-        f_2 = fftfreq(N, 1/fs_tobi)[:N//2]
-        fft1 = np.abs(fft(señal1[:N]))[:N//2]
-        fft2 = np.abs(fft(señal2[:N]))[:N//2]
+        f_1 = fftfreq(N, 1 / fs_al)[: N // 2]
+        f_2 = fftfreq(N, 1 / fs_tobi)[: N // 2]
+        fft1 = np.abs(fft(señal1[:N]))[: N // 2]
+        fft2 = np.abs(fft(señal2[:N]))[: N // 2]
 
         # Ignorar la componente DC (0 Hz) y buscar el peak mas significativo siguiente.
         freq_fund1 = seleccionar_primer_peak(f_1, fft1, min_freq=min_freq, umbral_rel=umbral_relativo)
         freq_fund2 = seleccionar_primer_peak(f_2, fft2, min_freq=min_freq, umbral_rel=umbral_relativo)
 
         # Parte original
-        #idx1 = np.argmax(fft1[1:]) + 1
-        #idx2 = np.argmax(fft2[1:]) + 1
-        #freq_fund1 = f_1[idx1]
-        #freq_fund2 = f_2[idx2]
+        # idx1 = np.argmax(fft1[1:]) + 1
+        # idx2 = np.argmax(fft2[1:]) + 1
+        # freq_fund1 = f_1[idx1]
+        # freq_fund2 = f_2[idx2]
 
         # Graficos FFT
         fig, ax = plt.subplots()
-        ax.plot(f_1, fft1, label="Algoritmo", color='blue')
-        ax.plot(f_2, fft2, label="Tobii pro", color='orange')
+        ax.plot(f_1, fft1, label="Algoritmo", color="blue")
+        ax.plot(f_2, fft2, label="Tobii pro", color="orange")
 
         if not np.isnan(freq_fund1):
-            ax.axvline(freq_fund1, color='blue', linestyle='--', alpha=0.6)
+            ax.axvline(freq_fund1, color="blue", linestyle="--", alpha=0.6)
         if not np.isnan(freq_fund2):
-            ax.axvline(freq_fund2, color='orange', linestyle='--', alpha=0.6)
+            ax.axvline(freq_fund2, color="orange", linestyle="--", alpha=0.6)
 
         ax.set_title(f"FFT comparativa - {nombre}")
         ax.set_xlabel("Frecuencia (Hz)")
@@ -316,11 +317,11 @@ def fft_comparacion(jplx, jply, jprx, jpry, tplx, tply, tprx, tpry, fs_tobi=100,
         ax.legend()
         st.pyplot(fig)
 
-        #st.info(
+        # st.info(
         #    f"Frecuencia fundamental {nombre}: "
         #    f"Algoritmo = {freq_fund1:.2f} Hz, "
         #    f"Tobii pro = {freq_fund2:.2f} Hz"
-        #)
+        # )
 
         # ---- Mostrar frecuencias ----
         if np.isnan(freq_fund1) or np.isnan(freq_fund2):
@@ -332,6 +333,7 @@ def fft_comparacion(jplx, jply, jprx, jpry, tplx, tply, tprx, tpry, fs_tobi=100,
                 f"Tobii pro = {freq_fund2:.2f} Hz"
             )
 
+
 def tobii_comp():
     # Streamlit app setup
     st.title("Análisis Tobii 👓")
@@ -341,7 +343,6 @@ def tobii_comp():
     # Cargar archivos CSV
     datos_josefa_L = st.file_uploader("Cargar archivo CSV con datos pupila izquierda", type=["csv"])
     datos_josefa_R = st.file_uploader("Cargar archivo CSV con datos pupilas derecha", type=["csv"])
-
 
     if datos_josefa_L and datos_josefa_R:
         data_L = pd.read_csv(datos_josefa_L)
@@ -357,9 +358,9 @@ def tobii_comp():
                 data = pd.read_csv(uploaded_file)
             elif ext == "xlsm":
                 data = pd.read_excel(uploaded_file, engine="openpyxl")
-            data = data_cleaning(data) # Filtrar datos por sensor
-            data_N = subsample_to_match(data_J, data) # Subsamplear para igualar tamaño
-            
+            data = data_cleaning(data)  # Filtrar datos por sensor
+            data_N = subsample_to_match(data_J, data)  # Subsamplear para igualar tamaño
+
             # Display the raw data
             if st.sidebar.toggle("Mostrar datos"):
                 st.write("### Raw Data")
@@ -369,21 +370,24 @@ def tobii_comp():
             st.write("3. Análisis de datos")
             with st.spinner("Analizando los datos, por favor espere..."):
                 # Extraer señales de ojos
-                jplx, jply, jprx, jpry, tplx, tply, tprx, tpry = data_extraction(data_J, data_N) # Extraer señales de ojos
+                jplx, jply, jprx, jpry, tplx, tply, tprx, tpry = data_extraction(
+                    data_J, data_N
+                )  # Extraer señales de ojos
                 st.write("Comparación con DTW:")
-                data_analysis(jplx, jply, jprx, jpry, tplx, tply, tprx, tpry) # Análisis de datos
+                data_analysis(jplx, jply, jprx, jpry, tplx, tply, tprx, tpry)  # Análisis de datos
                 # Comparación con histograma y FFT
                 st.write("Comparación con Histograma:")
                 histograma(jplx, jply, jprx, jpry, tplx, tply, tprx, tpry)
                 st.write("Comparación con FFT:")
                 fft_comparacion(jplx, jply, jprx, jpry, tplx, tply, tprx, tpry)
-            
+
     else:
         st.info("Subir archivos para realizar análisis")
 
 
 def main():
     tobii_comp()
+
 
 if __name__ == "__main__":
     main()

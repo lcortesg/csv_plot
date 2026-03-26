@@ -11,13 +11,16 @@
 
 import pandas as pd
 import streamlit as st
+
 from PIL import Image
+
 im = Image.open("assets/logos/favicon.png")
 st.set_page_config(
     page_title="CSV Handler",
     page_icon=im,
     layout="wide",
 )
+
 
 def csv_merge():
 
@@ -32,7 +35,6 @@ def csv_merge():
     )
 
     if len(uploaded_files) > 1:
-
         df = pd.concat(map(pd.read_csv, uploaded_files), ignore_index=True)
         csv_data = df.to_csv()
         csv_name = ""
@@ -44,7 +46,7 @@ def csv_merge():
         st.subheader(csv_name + ".csv")
 
         st.download_button(
-            label=f"Descargar CSV",
+            label="Descargar CSV",
             data=csv_data,
             file_name=csv_name + ".csv",
             mime="text/csv",
@@ -54,8 +56,10 @@ def csv_merge():
 
     return False
 
+
 def main():
     csv_merge()
+
 
 if __name__ == "__main__":
     main()

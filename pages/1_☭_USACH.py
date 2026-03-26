@@ -10,29 +10,26 @@
 """
 
 import io
-import csv
 import math
 import random
-import matplotlib.pyplot as plt
-import numpy as np
-import numpy.ma as ma
-import pandas as pd
-from numpy import mean
-from numpy import var
+
 from math import sqrt
-import streamlit as st
-from io import BytesIO
-import scipy.stats
-from scipy.stats import kstest
-from scipy.stats import shapiro
-from scipy.stats import lognorm
-from scipy import signal
-from scipy.signal import butter, filtfilt
-from dtaidistance import dtw
-from dtaidistance import dtw_visualisation as dtwvis
-from scipy.spatial.distance import euclidean
+
+import numpy as np
 import spm1d
+import pandas as pd
+import numpy.ma as ma
+import streamlit as st
+import scipy.stats
+import matplotlib.pyplot as plt
+
 from PIL import Image
+from numpy import var, mean
+from scipy import signal
+from scipy.stats import shapiro
+from dtaidistance import dtw, dtw_visualisation as dtwvis
+from scipy.signal import butter, filtfilt
+
 im = Image.open("assets/logos/favicon.png")
 st.set_page_config(
     page_title="CSV Handler",
@@ -41,17 +38,13 @@ st.set_page_config(
 )
 
 
+translate = {"knee": "Rodilla", "hip": "Cadera", "ankle": "Tobillo", "trunk": "Tronco"}
 
-translate = {
-    "knee": "Rodilla",
-    "hip": "Cadera",
-    "ankle": "Tobillo",
-    "trunk": "Tronco"
-}
 
 @st.cache_data
 def convert_df(df):
     return df.to_csv(index=False).encode("utf-8")
+
 
 # function to calculate Cohen's d for independent samples
 def cohend(d1, d2):
@@ -66,17 +59,20 @@ def cohend(d1, d2):
     # calculate the effect size
     return (u1 - u2) / s
 
+
 def randomize(x):
     y = []
     for i in x:
-        y.append(i+random.uniform(-0.1,0.1))
+        y.append(i + random.uniform(-0.1, 0.1))
     return np.array(y)
+
 
 def randomizeM(x, n):
     y = []
     for i in range(n):
-        y.append(x+random.uniform(-0.1,0.1))
+        y.append(x + random.uniform(-0.1, 0.1))
     return np.array(y)
+
 
 def merge_qtm():
     parts = []
@@ -95,7 +91,7 @@ def merge_qtm():
     tortuguita = {}
     cont = 0
     if len(uploaded_files) > 0:
-        plot_data = st.checkbox(f'¿Graficar datos?')
+        plot_data = st.checkbox("¿Graficar datos?")
         for uploaded_file in uploaded_files:
             data = uploaded_file.read()
             name = uploaded_file.name
@@ -120,14 +116,13 @@ def merge_qtm():
             if plot_data:
                 st.write(f"### {part}")
                 st.download_button(
-                    label=f'Descargar {name.replace(format,"csv")}',
+                    label=f"Descargar {name.replace(format, 'csv')}",
                     data=filetxt,
                     file_name=name.replace(format, "csv"),
                     mime="text/csv",
                     key=cont,
                 )
             cont = cont + 1
-
 
             buffer = io.StringIO(filetxt)
             df = pd.read_csv(filepath_or_buffer=buffer)
@@ -145,17 +140,16 @@ def merge_qtm():
         hamster = hamster.set_index("Frame")
         # pajarito = pajarito.set_index('frame')
         csv = convert_df(pajarito)
-        st.download_button(
-            "Descargar CSV", csv, f"{side}.csv", "text/csv", key="download-csv"
-        )
+        st.download_button("Descargar CSV", csv, f"{side}.csv", "text/csv", key="download-csv")
         return True, hamster, side, parts
 
     else:
         return False, False, False, parts
 
+
 def load_abma(sideq, parts):
 
-    #parts.append("frame")
+    # parts.append("frame")
 
     side = "LI" if sideq == "left" else "LD"
     st.markdown("## Datos ABMA")
@@ -191,39 +185,41 @@ def load_abma(sideq, parts):
 
 def plot(dfq, dfa, parts):
 
-    st.write(f"## QTM")
+    st.write("## QTM")
     values = st.slider(
-        'Select a range of values',
-        int(dfq.index[0]), int(dfq.index[-1]), (int(dfq.index[0]), int(dfq.index[-1])))
+        "Select a range of values",
+        int(dfq.index[0]),
+        int(dfq.index[-1]),
+        (int(dfq.index[0]), int(dfq.index[-1])),
+    )
     dfqn = {}
-    dfqn["Frame"] = dfq.index[values[0]-int(dfq.index[0]):values[1]-int(dfq.index[0]-1)]
+    dfqn["Frame"] = dfq.index[values[0] - int(dfq.index[0]) : values[1] - int(dfq.index[0] - 1)]
     for part in parts:
-        dfqn[part] = dfq[part].loc[values[0]:values[1]]
+        dfqn[part] = dfq[part].loc[values[0] : values[1]]
 
     dfqn = pd.DataFrame(dfqn)
     dfqn = dfqn.set_index("Frame")
     st.line_chart(dfqn)
 
-    st.write(f"## ABMA")
+    st.write("## ABMA")
 
     dfan = {}
     values = st.slider(
-        'Select a range of values',
-        int(dfa.index[0]), int(dfa.index[-1]), (int(dfa.index[0]), int(dfa.index[-1])))
-    dfan["Frame"] = dfa.index[values[0]-int(dfa.index[0]):values[1]-int(dfa.index[0]-1)]
+        "Select a range of values",
+        int(dfa.index[0]),
+        int(dfa.index[-1]),
+        (int(dfa.index[0]), int(dfa.index[-1])),
+    )
+    dfan["Frame"] = dfa.index[values[0] - int(dfa.index[0]) : values[1] - int(dfa.index[0] - 1)]
     for part in parts:
-        dfan[part] = dfa[part].loc[values[0]:values[1]]
+        dfan[part] = dfa[part].loc[values[0] : values[1]]
 
     for part in parts:
-        if st.checkbox(f'¿Invertir {part}?'):
+        if st.checkbox(f"¿Invertir {part}?"):
             dfan[part] = -dfan[part]
     dfan = pd.DataFrame(dfan)
     dfan = dfan.set_index("Frame")
     st.line_chart(dfan)
-
-
-
-
 
     return dfan, dfqn
 
@@ -248,10 +244,15 @@ def compare(dfq, dfa, parts):
         abma = dfa[part].to_list()
         qtm = dfq[part].to_list()
         if samp != 120:
-            qtm = np.interp(
-                np.arange(0, len(qtm), samp / 120), np.arange(0, len(qtm)), qtm
-            )
-        number = st.number_input(f'Inserte el desfase de {part}', min_value=-90, max_value=90, value=0, step=1, key=part)
+            qtm = np.interp(np.arange(0, len(qtm), samp / 120), np.arange(0, len(qtm)), qtm)
+        number = st.number_input(
+            f"Inserte el desfase de {part}",
+            min_value=-90,
+            max_value=90,
+            value=0,
+            step=1,
+            key=part,
+        )
         abmac = [x + number for x in abma]
 
         shft = np.argmax(signal.correlate(qtm, abmac)) - len(abmac)
@@ -261,13 +262,13 @@ def compare(dfq, dfa, parts):
 
         if inverse:
             if shft + len(dfa[part]) < len(qtm):
-                fix = len(qtm)-len(dfa[part])-shft
-                qtmc = qtm[shft+fix : len(qtm)]
+                fix = len(qtm) - len(dfa[part]) - shft
+                qtmc = qtm[shft + fix : len(qtm)]
                 abmac = abmac[0 : len(qtmc)]
 
             else:
                 abmac = abmac[shft : shft + len(dfa[part])]
-                qtmc = qtm[0: len(abmac)]
+                qtmc = qtm[0 : len(abmac)]
 
         if not inverse:
             if shft + len(dfa[part]) < len(qtm):
@@ -276,8 +277,8 @@ def compare(dfq, dfa, parts):
                 qtmc = qtm[shft : len(qtm)]
                 abmac = abmac[0 : len(qtmc)]
 
-        errabs = np.absolute(np.subtract(qtmc,abmac))
-        MSE = np.square(np.subtract(qtmc,abmac)).mean()
+        errabs = np.absolute(np.subtract(qtmc, abmac))
+        MSE = np.square(np.subtract(qtmc, abmac)).mean()
         rmse = math.sqrt(MSE)
 
         a = qtmc
@@ -290,7 +291,7 @@ def compare(dfq, dfa, parts):
         # c = np.correlate(a, b, mode = 'full')
         a = (a - np.mean(a)) / (np.std(a) * len(a))
         b = (b - np.mean(b)) / (np.std(b))
-        c = np.correlate(a, b, 'same')
+        c = np.correlate(a, b, "same")
         distance = dtw.distance(qtmc, abmac)
 
         dft = {
@@ -301,21 +302,20 @@ def compare(dfq, dfa, parts):
             # f"ABMA_RAW - {part}": abma_raw,
         }
 
-
         a = ma.masked_invalid(qtmc)
         b = ma.masked_invalid(abmac)
-        msk = (~a.mask & ~b.mask)
+        msk = ~a.mask & ~b.mask
         pcoef = scipy.stats.pearsonr(a[msk], b[msk])
         scoef = scipy.stats.spearmanr(a[msk], b[msk])
         kcoef = scipy.stats.kendalltau(a[msk], b[msk])
         cohen = cohend(qtmc, abmac)
-        errores ={
+        errores = {
             "Max ABSE": max(errabs),
             "Min ABSE": min(errabs),
             "Mean ABSE": errabs.mean(),
             "Mean RMSE": rmse,
             "Max X-Corr": max(c),
-            "Mean DTW": distance/len(abmac),
+            "Mean DTW": distance / len(abmac),
             "Pearson's correlation": pcoef[0],
             "Pearson's p-value": pcoef[1],
             "Spearman's correlation": scoef[0],
@@ -330,51 +330,51 @@ def compare(dfq, dfa, parts):
         }
 
         dft = pd.DataFrame(dft)
-        st.markdown(f"##### Gráficos de las señales")
+        st.markdown("##### Gráficos de las señales")
         st.line_chart(dft)
 
-        st.markdown(f"##### Correlación cruzada")
+        st.markdown("##### Correlación cruzada")
         st.line_chart(c)
 
-        st.markdown(f"##### DTW warping path")
+        st.markdown("##### DTW warping path")
         path = dtw.warping_path(qtmc, abmac)
         figure, axes = dtwvis.plot_warping(qtmc, abmac, path)
-        #dtwvis.plot_warping(qtmc, abmac, path, filename="warp.png")
+        # dtwvis.plot_warping(qtmc, abmac, path, filename="warp.png")
         st.pyplot(figure)
-        #st.image("warp.png", use_column_width=True)
+        # st.image("warp.png", use_column_width=True)
 
-        st.markdown(f"##### Tabla de resultados")
+        st.markdown("##### Tabla de resultados")
         st.write(errores)
 
-
-        #YA,YB = np.array([qtmc, randomize(qtmc)]), np.array([abmac, randomize(np.array(abmac))])
-        YA,YB = np.array(randomizeM(qtmc, 100)), np.array(randomizeM(np.array(abmac), 100))
+        # YA,YB = np.array([qtmc, randomize(qtmc)]), np.array([abmac, randomize(np.array(abmac))])
+        YA, YB = (
+            np.array(randomizeM(qtmc, 100)),
+            np.array(randomizeM(np.array(abmac), 100)),
+        )
         spm = spm1d.stats.ttest_paired(YA, YB)
         spmi = spm.inference(0.05, two_tailed=False, interp=True)
         st.write(spmi)
 
-        #(2) Plot:
-        #plt.close('all')
+        # (2) Plot:
+        # plt.close('all')
         ### plot mean and SD:
-        fig,AX = plt.subplots( 1, 2, figsize=(8, 3.5) )
-        ax     = AX[0]
+        fig, AX = plt.subplots(1, 2, figsize=(8, 3.5))
+        ax = AX[0]
         plt.sca(ax)
         spm1d.plot.plot_mean_sd(YA)
-        spm1d.plot.plot_mean_sd(YB, linecolor='r', facecolor='r')
-        ax.axhline(y=0, color='k', linestyle=':')
-        ax.set_xlabel('Time (%)')
-        ax.set_ylabel(f'{part} angle  (deg)')
+        spm1d.plot.plot_mean_sd(YB, linecolor="r", facecolor="r")
+        ax.axhline(y=0, color="k", linestyle=":")
+        ax.set_xlabel("Time (%)")
+        ax.set_ylabel(f"{part} angle  (deg)")
         ### plot SPM results:
-        ax     = AX[1]
+        ax = AX[1]
         plt.sca(ax)
         spmi.plot()
         spmi.plot_threshold_label(fontsize=8)
-        spmi.plot_p_values(size=10, offsets=[(0,0.3)])
-        ax.set_xlabel('Time (%)')
+        spmi.plot_p_values(size=10, offsets=[(0, 0.3)])
+        ax.set_xlabel("Time (%)")
         plt.tight_layout()
         st.pyplot(fig)
-
-
 
 
 def usach_plot():
@@ -383,12 +383,13 @@ def usach_plot():
         loaded, dfa = load_abma(sideq, parts)
         if loaded:
             dfan, dfqn = plot(dfq, dfa, parts)
-            if st.checkbox(f'¿Comparar datos?'):
+            if st.checkbox("¿Comparar datos?"):
                 compare(dfqn, dfan, parts)
 
 
 def main():
     usach_plot()
+
 
 if __name__ == "__main__":
     main()

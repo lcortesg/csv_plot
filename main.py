@@ -1,11 +1,14 @@
 import streamlit as st
+
 from PIL import Image
+
 im = Image.open("assets/logos/favicon.png")
 st.set_page_config(
     page_title="CSV Handler",
     page_icon=im,
     layout="wide",
 )
+
 
 def welcome():
     st.markdown("# Página principal")
@@ -24,5 +27,6 @@ def welcome():
         - **Tobii**: Comparar datos de Tobii Pro.
         """
     )
+
 
 welcome()

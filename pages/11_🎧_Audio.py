@@ -9,21 +9,15 @@
 @bug     : None.
 """
 
-import io
-from io import BytesIO
-import csv
 import numpy as np
-import pandas as pd
-import streamlit as st
 import pydub
-import math
+import streamlit as st
 import librosa.display
-import matplotlib.pyplot as plt
-import plotly.figure_factory as ff
 import plotly.graph_objects as go
-from plotly.subplots import make_subplots
-import scipy.io.wavfile as wavfile
+
 from PIL import Image
+from plotly.subplots import make_subplots
+
 im = Image.open("assets/logos/favicon.png")
 st.set_page_config(
     page_title="CSV Handler",
@@ -45,27 +39,29 @@ def wav_plot():
     )
 
     if len(uploaded_files) > 0:
-        threshold = st.number_input("Sensitivity Threshold", value=0.18, placeholder="Sensitivity Threshold")
+        threshold = st.number_input(
+            "Sensitivity Threshold", value=0.18, placeholder="Sensitivity Threshold"
+        )
         for uploaded_file in uploaded_files:
-            #data = uploaded_file.read()
-            #bytes_data = uploaded_file.getvalue()
+            # data = uploaded_file.read()
+            # bytes_data = uploaded_file.getvalue()
 
             name = uploaded_file.name
-            format = name[-3:]
+            # format = name[-3:]
             st.audio(uploaded_file, format="audio/wav", start_time=0)
 
-            #if st.checkbox(f'Graficar {name}'):
-            filename = f'{name[:-4]}'
+            # if st.checkbox(f'Graficar {name}'):
+            # filename = f'{name[:-4]}'
             x, y, sr = get_data(uploaded_file)
             d, t, p = detect_discontinuities(x, y, sr, threshold)
 
             plot_waveform(x, y, t, p, name, sr)
 
-            #y = handle_uploaded_audio_file(uploaded_file)
-            #st.write(f'Frecuencia de muestreo: {sr}')
-            #df = pd.DataFrame(y)
-            #st.line_chart(df)
-            #st.write(df)
+            # y = handle_uploaded_audio_file(uploaded_file)
+            # st.write(f'Frecuencia de muestreo: {sr}')
+            # df = pd.DataFrame(y)
+            # st.line_chart(df)
+            # st.write(df)
             #
 
         return True
@@ -75,77 +71,70 @@ def wav_plot():
 
 def handle_uploaded_audio_file(uploaded_file):
     a = pydub.AudioSegment.from_wav(uploaded_file)
-    #st.write(a.sample_width)
+    # st.write(a.sample_width)
     a = pydub.AudioSegment(
         # raw audio data (bytes)
         data=a,
-
         # 2 byte (16 bit) samples
         sample_width=2,
-
         # 44.1 kHz frame rate
         frame_rate=10000,
-
         # stereo
-        channels=2
+        channels=2,
     )
 
     samples = a.get_array_of_samples()
-    #fp_arr = np.array(samples).T.astype(np.float32)
-    #fp_arr /= np.iinfo(samples.typecode).max
-    #st.write(fp_arr.shape)
-    return samples #, fp_arr.shape[0]
+    # fp_arr = np.array(samples).T.astype(np.float32)
+    # fp_arr /= np.iinfo(samples.typecode).max
+    # st.write(fp_arr.shape)
+    return samples  # , fp_arr.shape[0]
 
 
 def plot_waveform(x, y, d, p, filename, sr):
     # Streamlit
-    #st.line_chart(y)
+    # st.line_chart(y)
 
     # Plotly
-    #fig = go.Figure(data=go.Scatter(x=x, y=y, mode='lines'))
+    # fig = go.Figure(data=go.Scatter(x=x, y=y, mode='lines'))
     fig = make_subplots()
-    fig.add_trace(go.Scatter(x=x, y=y, name=f'Waveform', line={'width': 2}, mode='lines'))
-    fig.add_trace(go.Scatter(x=d, y=p, name=f'Discontinuities', line={'width': 2}, mode='markers', marker=dict(
-                color='LightGreen',
-                size=8,
-                line=dict(
-                    color='MediumPurple',
-                    width=2
-                )
-            ),))
-    fig.update_layout(
-        title=f"{filename}",
-        xaxis_title="Time [s]",
-        yaxis_title="Amplitude"
+    fig.add_trace(go.Scatter(x=x, y=y, name="Waveform", line={"width": 2}, mode="lines"))
+    fig.add_trace(
+        go.Scatter(
+            x=d,
+            y=p,
+            name="Discontinuities",
+            line={"width": 2},
+            mode="markers",
+            marker=dict(color="LightGreen", size=8, line=dict(color="MediumPurple", width=2)),
+        )
     )
+    fig.update_layout(title=f"{filename}", xaxis_title="Time [s]", yaxis_title="Amplitude")
 
     fig.add_annotation(
-            dict(
-                font=dict(color='black',size=12),
-                x=1.03,
-                y=0.07,
-                showarrow=False,
-                text=f'SF: {sr}[Hz]',
-                textangle=0,
-                xanchor='left',
-                yanchor='top',
-                xref="paper",
-                yref="paper"
-            )
+        dict(
+            font=dict(color="black", size=12),
+            x=1.03,
+            y=0.07,
+            showarrow=False,
+            text=f"SF: {sr}[Hz]",
+            textangle=0,
+            xanchor="left",
+            yanchor="top",
+            xref="paper",
+            yref="paper",
         )
+    )
 
     # Displaying the chart
     st.plotly_chart(fig, use_container_width=True, theme="streamlit")
 
     # MatplotLib
-    #fig, ax = plt.subplots(figsize=(10, 4))
-    #librosa.display.waveshow(y, sr=sr)
-    #plt.title('Waveform')
-    #plt.xlabel('Time (s)')
-    #plt.ylabel('Amplitude')
-    #st.pyplot(fig)
-
-
+    # fig, ax = plt.subplots(figsize=(10, 4))
+    # librosa.display.waveshow(y, sr=sr)
+    # plt.title('Waveform')
+    # plt.xlabel('Time (s)')
+    # plt.ylabel('Amplitude')
+    # st.pyplot(fig)
 
 
 # Function to plot waveform
@@ -154,6 +143,7 @@ def get_data(audio_file):
     duration = librosa.get_duration(y=y, sr=sr)
     x = np.linspace(0, duration, len(y))
     return x, y, sr
+
 
 # Function to detect discontinuities in WAV signal
 def detect_discontinuities(time, data, sample_rate, threshold=0.1):
@@ -181,6 +171,7 @@ def detect_discontinuities(time, data, sample_rate, threshold=0.1):
 
 def main():
     wav_plot()
+
 
 if __name__ == "__main__":
     main()

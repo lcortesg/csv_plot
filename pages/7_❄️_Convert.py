@@ -10,18 +10,19 @@
 """
 
 import io
-from io import BytesIO
-import csv
+
 import pandas as pd
 import streamlit as st
-from zipfile import ZipFile
+
 from PIL import Image
+
 im = Image.open("assets/logos/favicon.png")
 st.set_page_config(
     page_title="CSV Handler",
     page_icon=im,
     layout="wide",
 )
+
 
 def csv_convert():
 
@@ -36,8 +37,7 @@ def csv_convert():
     )
 
     if len(uploaded_files) > 0:
-
-        '''zipObj = ZipFile("sample.zip", "w")'''
+        """zipObj = ZipFile("sample.zip", "w")"""
 
         for uploaded_file in uploaded_files:
             data = uploaded_file.read()
@@ -56,31 +56,30 @@ def csv_convert():
                 filetxt = filetxt + line.replace("\t", ",")
 
             st.download_button(
-                label=f'Descargar {name.replace(format,"csv")}',
+                label=f"Descargar {name.replace(format, 'csv')}",
                 data=filetxt,
                 file_name=name.replace(format, "csv"),
                 mime="text/csv",
             )
 
-            if st.checkbox(f'Graficar {name.replace(format,"csv")}'):
+            if st.checkbox(f"Graficar {name.replace(format, 'csv')}"):
                 buffer = io.StringIO(filetxt)
-                df = pd.read_csv(filepath_or_buffer = buffer)
+                df = pd.read_csv(filepath_or_buffer=buffer)
                 keys = df.keys()
-                df = df.set_index('XY')
+                df = df.set_index("XY")
                 for key in keys:
                     if "Unnamed" in key:
-                        df = df.drop(f'{key}', axis=1)
+                        df = df.drop(f"{key}", axis=1)
                 st.line_chart(df)
 
-            '''reader = csv.reader(filetxt)
+            """reader = csv.reader(filetxt)
             parsed_csv = list(reader)
 
             buffer = io.StringIO(filetxt)
             buffer.to_csv(name.replace(format,"csv"), index=None)
-            zipObj.write(buffer.getvalue())'''
+            zipObj.write(buffer.getvalue())"""
 
-
-        '''
+        """
         zipObj.close()
         ZipfileDotZip = "sample.zip"
 
@@ -91,14 +90,16 @@ def csv_convert():
                 Click last model weights\
             </a>"
         st.sidebar.markdown(href, unsafe_allow_html=True)
-        '''
+        """
 
         return True
 
     return False
 
+
 def main():
     csv_convert()
+
 
 if __name__ == "__main__":
     main()

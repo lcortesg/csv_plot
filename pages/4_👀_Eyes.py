@@ -8,21 +8,19 @@
 @contact : lucas.cortes@lanek.cl.
 """
 
-import streamlit as st
 import pandas as pd
-import matplotlib.pyplot as plt
-import plotly.graph_objects as go
+import streamlit as st
 import plotly.express as px
-import numpy as np
-import math
-import warnings
+
 from PIL import Image
+
 im = Image.open("assets/logos/favicon.png")
 st.set_page_config(
     page_title="CSV Handler",
     page_icon=im,
     layout="wide",
 )
+
 
 def compare():
     # Streamlit app setup
@@ -44,7 +42,7 @@ def compare():
                 # Read data
                 data1 = pd.read_csv(uploaded_file)
                 # Read head
-                column_names = data1.dropna(axis=1, how='all').columns.tolist()
+                column_names = data1.dropna(axis=1, how="all").columns.tolist()
                 # Trim columns
                 col_trim = []
                 for col in column_names:
@@ -58,31 +56,31 @@ def compare():
                     placeholder="None",
                 )
                 # Plot
-                fig = px.line(data1, x="frame", y=opt1, title=f'{opt1}')
+                fig = px.line(data1, x="frame", y=opt1, title=f"{opt1}")
                 st.write(fig)
 
             if "tsv" in uploaded_file.name:
                 # Read data
-                data2 = pd.read_csv(uploaded_file, sep='\t')
+                data2 = pd.read_csv(uploaded_file, sep="\t")
 
-                #Filter by sensor
+                # Filter by sensor
                 sensor_value = st.selectbox(
                     "Seleccionar sensor",
                     (data2["Sensor"].dropna().unique()),
-                    placeholder="Eye Tracker"
+                    placeholder="Eye Tracker",
                 )
-                data2 = data2[data2['Sensor'] == sensor_value]
+                data2 = data2[data2["Sensor"] == sensor_value]
 
                 # Filter by participant
                 participant_value = st.selectbox(
                     "Seleccionar participante",
                     (data2["Participant name"].unique()),
-                    placeholder="None"
+                    placeholder="None",
                 )
-                data2 = data2[data2['Participant name'] == participant_value]
+                data2 = data2[data2["Participant name"] == participant_value]
 
                 # Read head
-                column_names = data2.dropna(axis=1, how='all').columns.tolist()
+                column_names = data2.dropna(axis=1, how="all").columns.tolist()
                 col_trim = column_names
                 opt2 = st.selectbox(
                     "Seleccionar variable TSV",
@@ -92,19 +90,24 @@ def compare():
                 )
 
                 # Plot
-                fig = px.line(data2, x=data2.index, y=opt2, title=f'{opt2}')
+                fig = px.line(data2, x=data2.index, y=opt2, title=f"{opt2}")
                 st.write(fig)
 
-                fig2 = px.line(data2, x="Pupil position left X", y="Pupil position left Y", title=f'{opt2}')
+                fig2 = px.line(
+                    data2,
+                    x="Pupil position left X",
+                    y="Pupil position left Y",
+                    title=f"{opt2}",
+                )
                 st.write(fig2)
-
-
 
     else:
         st.info("Subir archivo para realizar análisis")
 
+
 def main():
     compare()
+
 
 if __name__ == "__main__":
     main()

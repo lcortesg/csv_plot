@@ -12,13 +12,13 @@ import streamlit as st
 
 from source.functions import clear_page, process_input
 
-clear_page('Procesar')
+clear_page("Procesar")
 
 
 def main():
-    st.markdown('# 📈 Procesar Examen EMG')
+    st.markdown("# 📈 Procesar Examen EMG")
     process_input()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
