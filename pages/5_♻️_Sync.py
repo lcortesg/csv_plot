@@ -75,7 +75,7 @@ def plot_data(mag, epoch, start_epoch, end_epoch, peaks=None):
 
     fig = go.Figure()
 
-    fig.add_trace(go.Scatter(x=plot_df["timestamp_s"], y=plot_df["mag"], mode="lines", name="Magnitude"))
+    fig.add_trace(go.Scatter(x=plot_df["timestamp_s"], y=plot_df["mag"], mode="lines", name="Data"))
     title = "Trimmed signal" if peaks is None else "Peak detection"
     if peaks is not None:
         fig.add_trace(
@@ -93,8 +93,8 @@ def plot_data(mag, epoch, start_epoch, end_epoch, peaks=None):
 
     fig.update_layout(
         title=title,
-        xaxis_title="timestamp_s",
-        yaxis_title="Magnitude",
+        xaxis_title="Time",
+        yaxis_title="Data",
         legend_title="Signals",
     )
 
