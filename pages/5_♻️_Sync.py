@@ -241,16 +241,16 @@ def process_data_ecg(file, output_dir, start_epoch):
 
 
 def process_data_contec(file, output_dir, start_epoch):
-    data = pd.read_csv(file, sep=";")
-    data = fix_data(data)
-    start_idx = (data["timestamp_s"] - start_epoch).abs().idxmin()
-    start_epoch = data.loc[start_idx, "timestamp_s"]
+    data = pd.read_csv(file, sep=",")
+    data = data.dropna()
+    start_idx = (data["TimeStamp"] - start_epoch).abs().idxmin()
+    start_epoch = data.loc[start_idx, "TimeStamp"]
     epoch_fin = start_epoch + 60
-    end_idx = (data["timestamp_s"] - epoch_fin).abs().idxmin()
-    end_epoch = data.loc[end_idx, "timestamp_s"]
+    end_idx = (data["TimeStamp"] - epoch_fin).abs().idxmin()
+    end_epoch = data.loc[end_idx, "TimeStamp"]
     ecg_trim = data.iloc[start_idx:end_idx]
     ecg_trim.to_csv(f"{output_dir}/contec_data.csv", index=False)
-    plot_data(data["ecg_uV"], data["timestamp_s"], start_epoch, end_epoch)
+    plot_data(data["HR"], data["TimeStamp"], start_epoch, end_epoch)
 
 
 def sync_data():
@@ -264,8 +264,8 @@ def sync_data():
     # --- ACC ---
     with col1:
         acc_file = st.file_uploader("ACC CSV", type=["csv"], key="acc")
-
         acc_valid = False
+        
         if acc_file:
             if "acc" not in acc_file.name.lower():
                 st.error("Debe contener 'acc'")
