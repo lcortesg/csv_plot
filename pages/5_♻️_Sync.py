@@ -304,42 +304,44 @@ def process_data_contec(file, start_epoch):
 def process_video(video_file, start_epoch):
 
     # --------------------------------------------------
-    # Save uploaded video to temp file
+    # Save uploaded video
     # --------------------------------------------------
     with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as tmp:
         tmp.write(video_file.getbuffer())
         video_path = tmp.name
 
-    video = VideoFileClip(video_path)
     audio_path = OUTPUT_DIR / "audio.wav"
 
     # --------------------------------------------------
     # Extract audio
     # --------------------------------------------------
-    video.audio.write_audiofile(audio_path)
+    video = VideoFileClip(video_path)
+    video.audio.write_audiofile(audio_path, logger=None)
 
     fs_audio, audio_data = wavfile.read(audio_path)
 
-    # Convert stereo → mono
-    audio_avg = audio_data.mean(axis=1)
+    # Stereo → mono
+    audio = audio_data.mean(axis=1)
 
-    # Bandpass filter for cough frequencies
-    audio_f = bandpass(audio_avg, fs_audio)
+    # Bandpass filter
+    audio = bandpass(audio, fs_audio)
 
     # --------------------------------------------------
-    # Short-time energy
+    # Short-time energy (vectorized, very fast)
     # --------------------------------------------------
     frame_len = int(FRAME_LENGTH_MS / 1000 * fs_audio)
     hop = int(HOP_MS / 1000 * fs_audio)
 
-    energy = np.array(
-        [np.sum(audio_f[i : i + frame_len] ** 2) for i in range(0, len(audio_f) - frame_len, hop)]
-    )
+    n_frames = (len(audio) - frame_len) // hop
+
+    frames = np.lib.stride_tricks.sliding_window_view(audio, frame_len)[::hop][:n_frames]
+
+    energy = np.sum(frames**2, axis=1)
 
     energy_time = np.arange(len(energy)) * hop / fs_audio
 
     # --------------------------------------------------
-    # Peak detection (cough)
+    # Detect cough
     # --------------------------------------------------
     threshold = np.mean(energy) + COUGH_PEAK_FACTOR * np.std(energy)
 
@@ -349,35 +351,32 @@ def process_video(video_file, start_epoch):
         distance=int(fs_audio / hop),
     )
 
-    cough_times = peaks * hop / fs_audio
-
-    if len(cough_times) == 0:
+    if len(peaks) == 0:
         st.error("No cough detected in audio.")
         return
+
+    cough_time = peaks[0] * hop / fs_audio
 
     # --------------------------------------------------
     # Synchronization
     # --------------------------------------------------
     # ACC cough = start_epoch - TRIM_OFFSET
-    # Align audio cough to that moment
-    video_start_epoch = (start_epoch - TRIM_OFFSET) - cough_times[0]
+    acc_cough_epoch = start_epoch - TRIM_OFFSET
 
-    # Build datetime vector for plotting
+    video_start_epoch = acc_cough_epoch - cough_time
+
     energy_timestamp = video_start_epoch + energy_time
     energy_datetime = pd.to_datetime(energy_timestamp, unit="s")
 
     # --------------------------------------------------
-    # Compute trim window
-    # --------------------------------------------------
-    start = cough_times[0] + TRIM_OFFSET
-    end = start + TRIM_DURATION
-
-    start_dt = pd.to_datetime(video_start_epoch + start, unit="s")
-    end_dt = pd.to_datetime(video_start_epoch + end, unit="s")
-
-    # --------------------------------------------------
     # Trim video
     # --------------------------------------------------
+    trim_start = cough_time + TRIM_OFFSET
+    trim_end = trim_start + TRIM_DURATION
+
+    start_dt = pd.to_datetime(video_start_epoch + trim_start, unit="s")
+    end_dt = pd.to_datetime(video_start_epoch + trim_end, unit="s")
+
     output_video = OUTPUT_DIR / "video.mp4"
 
     subprocess.run(
@@ -385,7 +384,7 @@ def process_video(video_file, start_epoch):
             "ffmpeg",
             "-y",
             "-ss",
-            str(start),
+            str(trim_start),
             "-i",
             video_path,
             "-t",
@@ -398,7 +397,7 @@ def process_video(video_file, start_epoch):
     )
 
     # --------------------------------------------------
-    # Plot cough detection
+    # Plot
     # --------------------------------------------------
     plot_data(
         energy,
