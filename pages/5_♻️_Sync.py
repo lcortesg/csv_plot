@@ -377,6 +377,19 @@ def process_video(video_file, start_epoch):
     start_dt = pd.to_datetime(video_start_epoch + trim_start, unit="s")
     end_dt = pd.to_datetime(video_start_epoch + trim_end, unit="s")
 
+    # --------------------------------------------------
+    # Plot
+    # --------------------------------------------------
+
+    plot_data(
+        energy,
+        energy_datetime,
+        start_dt,
+        end_dt,
+        peaks,
+        "Cough Detection",
+    )
+
     output_video = OUTPUT_DIR / "video.mp4"
 
     subprocess.run(
@@ -394,18 +407,6 @@ def process_video(video_file, start_epoch):
             output_video,
         ],
         check=True,
-    )
-
-    # --------------------------------------------------
-    # Plot
-    # --------------------------------------------------
-    plot_data(
-        energy,
-        energy_datetime,
-        start_dt,
-        end_dt,
-        peaks,
-        "Cough Detection",
     )
 
 
