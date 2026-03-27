@@ -23,7 +23,7 @@ import plotly.graph_objects as go
 from PIL import Image
 from moviepy import VideoFileClip
 from scipy.io import wavfile
-from scipy.signal import butter, filtfilt, find_peaks
+from scipy.signal import butter, filtfilt, find_peaks, savgol_filter
 
 # ---------------------------------------------------
 # Streamlit Config
@@ -52,6 +52,9 @@ TRIM_DURATION = 60
 
 FRAME_LENGTH_MS = 20
 HOP_MS = 10
+
+LOW = 300
+HIGH = 2000
 
 
 # ---------------------------------------------------
@@ -93,10 +96,25 @@ def butter_lowpass_filter(data, cutoff, fs, order=1):
     return filtfilt(b, a, data)
 
 
-def bandpass(data, sr, low=300, high=3000):
+def butter_highpass_filter(data, cutoff, fs, order=1):
+
+    if order == 0:
+        return data
+
+    nyq = 0.5 * fs
+    normal_cutoff = cutoff / nyq
+
+    b, a = butter(order, normal_cutoff, btype="high")
+    return filtfilt(b, a, data)
+
+
+def butter_bandpass_filter(data, sr, low=300, high=3000, order=1):
+
+    if order == 0:
+        return data
 
     nyq = 0.5 * sr
-    b, a = butter(4, [low / nyq, high / nyq], btype="band")
+    b, a = butter(order, [low / nyq, high / nyq], btype="band")
 
     return filtfilt(b, a, data)
 
@@ -184,19 +202,23 @@ def compute_magnitude(df):
     y = df["y_mG"].values
     z = df["z_mG"].values
 
-    mag = np.sqrt(x**2 + y**2 + z**2)
-
-    df["magnitude"] = mag
-    df["magnitude_abs"] = np.abs(mag)
-    df["magnitude_dc"] = np.abs(mag - np.mean(mag))
-
     fs = get_sampling_frequency(df["timestamp"])
 
-    df["magnitude_filt"] = butter_lowpass_filter(
-        df["magnitude_dc"],
-        cutoff=20,
-        fs=fs,
-    )
+    # magnitude
+    mag = np.sqrt(x**2 + y**2 + z**2)
+
+    # remove gravity (DC)
+    mag_hp = butter_highpass_filter(mag, cutoff=0.3, fs=fs, order=2)
+
+    # rectify
+    mag_rect = np.abs(mag_hp)
+
+    # smooth envelope
+    mag_filt = savgol_filter(mag_rect, 35, 2)
+    #mag_filt = butter_lowpass_filter(mag_rect, cutoff=5, fs=fs, order=3)
+
+    df["magnitude"] = mag
+    df["magnitude_filt"] = mag_filt
 
     return df
 
@@ -324,7 +346,7 @@ def process_video(video_file, start_epoch):
     audio = audio_data.mean(axis=1)
 
     # Bandpass filter
-    audio = bandpass(audio, fs_audio)
+    audio = butter_bandpass_filter(audio, fs_audio, LOW, HIGH, 3)
 
     # --------------------------------------------------
     # Short-time energy (vectorized, very fast)
@@ -337,6 +359,8 @@ def process_video(video_file, start_epoch):
     frames = np.lib.stride_tricks.sliding_window_view(audio, frame_len)[::hop][:n_frames]
 
     energy = np.sum(frames**2, axis=1)
+
+    energy = savgol_filter(energy, 10, 2)
 
     energy_time = np.arange(len(energy)) * hop / fs_audio
 
