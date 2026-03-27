@@ -3,17 +3,15 @@
 @file    : 10_sync.py
 @brief   : Handles synchronization of data.
 @date    : 2026/03/24
-@version : 1.0.0
+@version : 1.1.0
 @author  : Lucas Cortés.
-@contact : lucas.cortes@lanek.cl.
 """
 
 import io
 import zipfile
-import tempfile
-import subprocess
 import shutil
-
+import subprocess
+import tempfile
 from pathlib import Path
 
 import numpy as np
@@ -26,66 +24,113 @@ from moviepy import VideoFileClip
 from scipy.io import wavfile
 from scipy.signal import butter, filtfilt, find_peaks
 
-im = Image.open("assets/logos/favicon.png")
+
+# ---------------------------------------------------
+# Streamlit Config
+# ---------------------------------------------------
+
+ICON = Image.open("assets/logos/favicon.png")
+
 st.set_page_config(
     page_title="CSV Handler",
-    page_icon=im,
+    page_icon=ICON,
     layout="wide",
 )
 
 
-def butter_lowpass_filter(data, cutoff, fs, order):
-    if order == 0:
-        return data
-    nyq = 0.5 * fs  # Nyquist Frequency
-    normal_cutoff = cutoff / nyq  # Normalise frequency
-    # Get the filter coefficients
-    b, a = butter(order, normal_cutoff, btype="low", analog=False)
-    y = filtfilt(b, a, data)  # Filter data
-    return y
+# ---------------------------------------------------
+# Constants
+# ---------------------------------------------------
+
+OUTPUT_DIR = Path("outputs")
+
+COUGH_PEAK_FACTOR = 10
+ACC_PEAK_FACTOR = 10
+
+TRIM_OFFSET = 30
+TRIM_DURATION = 60
+
+FRAME_LENGTH_MS = 20
+HOP_MS = 10
 
 
-def bandpass(data, sr, low=300, high=3000):
-    nyq = 0.5 * sr
-    b, a = butter(4, [low / nyq, high / nyq], btype="band")
-    return filtfilt(b, a, data)
+# ---------------------------------------------------
+# File Utilities
+# ---------------------------------------------------
+
+def reset_dir(path: Path):
+    shutil.rmtree(path, ignore_errors=True)
+    path.mkdir(parents=True, exist_ok=True)
 
 
 def zip_outputs():
-    outputs_dir = Path("outputs")
+    buffer = io.BytesIO()
 
-    zip_buffer = io.BytesIO()
-
-    with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zipf:
-        for file in outputs_dir.rglob("*"):
+    with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as zipf:
+        for file in OUTPUT_DIR.rglob("*"):
             if file.is_file() and file.name != "audio.wav":
-                zipf.write(file, file.relative_to(outputs_dir))
+                zipf.write(file, file.relative_to(OUTPUT_DIR))
 
-    zip_buffer.seek(0)
-    return zip_buffer
+    buffer.seek(0)
+    return buffer
 
 
-def plot_data(mag, epoch, start_epoch, end_epoch, peaks=None):
+# ---------------------------------------------------
+# Signal Processing
+# ---------------------------------------------------
 
-    plot_df = pd.DataFrame(
-        {
-            "timestamp_s": epoch,
-            "mag": mag,
-        }
-    )
+def butter_lowpass_filter(data, cutoff, fs, order=1):
+
+    if order == 0:
+        return data
+
+    nyq = 0.5 * fs
+    normal_cutoff = cutoff / nyq
+
+    b, a = butter(order, normal_cutoff, btype="low")
+    return filtfilt(b, a, data)
+
+
+def bandpass(data, sr, low=300, high=3000):
+
+    nyq = 0.5 * sr
+    b, a = butter(4, [low / nyq, high / nyq], btype="band")
+
+    return filtfilt(b, a, data)
+
+
+def get_sampling_frequency(timestamps):
+
+    dt = np.diff(timestamps)
+    return 1 / np.mean(dt)
+
+
+# ---------------------------------------------------
+# Plotting
+# ---------------------------------------------------
+
+def plot_data(signal, epoch, start_epoch, end_epoch, peaks=None, title="Signal"):
 
     fig = go.Figure()
 
-    fig.add_trace(go.Scatter(x=plot_df["timestamp_s"], y=plot_df["mag"], mode="lines", name="Data"))
-    title = "Trimmed signal" if peaks is None else "Peak detection"
+    fig.add_trace(
+        go.Scatter(
+            x=epoch,
+            y=signal,
+            mode="lines",
+            name="Signal",
+        )
+    )
+
     if peaks is not None:
+
         fig.add_trace(
             go.Scatter(
                 x=epoch[peaks],
-                y=mag[peaks],
+                y=signal[peaks],
                 mode="markers",
-                name="Peaks",
                 marker=dict(size=10),
+                name="Peaks",
             )
         )
 
@@ -95,235 +140,366 @@ def plot_data(mag, epoch, start_epoch, end_epoch, peaks=None):
     fig.update_layout(
         title=title,
         xaxis_title="Time",
-        yaxis_title="Data",
-        legend_title="Signals",
+        yaxis_title="Value",
     )
 
     st.plotly_chart(fig, use_container_width=True)
 
 
+# ---------------------------------------------------
+# Data Preparation
+# ---------------------------------------------------
+
 def fix_data(df):
-    df["timestamp_s"] = df["timestamp_s"].str.replace(",", ".").astype(float)
-    df["time"] = pd.to_datetime(df["timestamp_s"], unit="s")
+
+    df = df.dropna()
+
+    if "timestamp_s" in df.columns:
+
+        df["timestamp"] = df["timestamp_s"].str.replace(",", ".").astype(float)
+        df["datetime"] = pd.to_datetime(df["timestamp"], unit="s")
+
+    elif "TimeStamp" in df.columns:
+
+        df["timestamp"] = df["TimeStamp"].astype(float)
+        df["datetime"] = pd.to_datetime(df["timestamp"], unit="s")
+
+    else:
+        st.error("No timestamp column found.")
+        st.stop()
+
+    # Move timestamp and time to the beginning
+    cols = ["timestamp", "datetime"] + [c for c in df.columns if c not in ["timestamp", "datetime"]]
+    df = df[cols]
+
+    df = df.drop(columns=["timestamp_s", "TimeStamp", "DateTime"], errors="ignore")
+
     return df
 
 
-def get_magnitudes(df):
+def compute_magnitude(df):
+
     x = df["x_mG"].values
     y = df["y_mG"].values
     z = df["z_mG"].values
 
-    # Magnitude calculation
     mag = np.sqrt(x**2 + y**2 + z**2)
+
     df["magnitude"] = mag
+    df["magnitude_abs"] = np.abs(mag)
+    df["magnitude_dc"] = np.abs(mag - np.mean(mag))
 
-    # Absolute magnitude calculation
-    mag_abs = np.abs(mag - np.mean(mag))
-    df["magnitude_abs"] = mag_abs
+    fs = get_sampling_frequency(df["timestamp"])
 
-    # Filtered absolute magnitude
-    fs = get_sf(df)
-    mag_filt = butter_lowpass_filter(data=df["magnitude_abs"], cutoff=20, fs=fs, order=1)
-    df["magnitude_filt"] = mag_filt
+    df["magnitude_filt"] = butter_lowpass_filter(
+        df["magnitude_dc"],
+        cutoff=20,
+        fs=fs,
+    )
 
     return df
 
 
-def get_sf(df):
-    dt = np.diff(df["timestamp_s"])
-    mean_dt = np.mean(dt)
-    fs = 1 / mean_dt
-    return fs
+# ---------------------------------------------------
+# ACC Processing
+# ---------------------------------------------------
+
+def process_data_acc(file):
+
+    data = pd.read_csv(file, sep=";")
+    data = fix_data(data)
+    data = compute_magnitude(data)
+
+    signal = data["magnitude_filt"].values
+
+    threshold = np.mean(signal) + ACC_PEAK_FACTOR * np.std(signal)
+
+    peaks, _ = find_peaks(signal, height=threshold, distance=500)
+
+    start_epoch = data["timestamp"].iloc[peaks[0]] + TRIM_OFFSET
+    end_epoch = start_epoch + TRIM_DURATION
+
+    start_idx = (data["timestamp"] - start_epoch).abs().idxmin()
+    end_idx = (data["timestamp"] - end_epoch).abs().idxmin()
+
+    trimmed = data.iloc[start_idx:end_idx]
+
+    trimmed.to_csv(OUTPUT_DIR / "acc_data.csv", index=False)
+
+    plot_data(
+        signal,
+        data["datetime"].values,
+        pd.to_datetime(start_epoch, unit="s"),
+        pd.to_datetime(end_epoch, unit="s"),
+        peaks,
+        "ACC Peak Detection",
+    )
+
+    return start_epoch
 
 
-def reset_dir(path: str):
-    p = Path(path)
-    shutil.rmtree(p, ignore_errors=True)
-    p.mkdir(parents=True, exist_ok=True)
+# ---------------------------------------------------
+# ECG Processing
+# ---------------------------------------------------
+
+def process_data_ecg(file, start_epoch):
+
+    data = pd.read_csv(file, sep=";")
+    data = fix_data(data)
+
+    end_epoch = start_epoch + TRIM_DURATION
+
+    start_idx = (data["timestamp"] - start_epoch).abs().idxmin()
+    end_idx = (data["timestamp"] - end_epoch).abs().idxmin()
+
+    trimmed = data.iloc[start_idx:end_idx]
+
+    trimmed.to_csv(OUTPUT_DIR / "ecg_data.csv", index=False)
+
+    plot_data(
+        data["ecg_uV"],
+        data["datetime"].values,
+        pd.to_datetime(start_epoch, unit="s"),
+        pd.to_datetime(end_epoch, unit="s"),
+        title="ECG Signal",
+    )
 
 
-def process_video(video_file, output_dir):
-    with tempfile.NamedTemporaryFile(delete=False) as tmp:
+# ---------------------------------------------------
+# CONTEC Processing
+# ---------------------------------------------------
+
+def process_data_contec(file, start_epoch):
+
+    data = pd.read_csv(file)
+    data = fix_data(data)
+
+    end_epoch = start_epoch + TRIM_DURATION
+
+    start_idx = (data["timestamp"] - start_epoch).abs().idxmin()
+    end_idx = (data["timestamp"] - end_epoch).abs().idxmin()
+
+    trimmed = data.iloc[start_idx:end_idx]
+
+    trimmed.to_csv(OUTPUT_DIR / "contec_data.csv", index=False)
+
+    plot_data(
+        data["HR"],
+        data["datetime"].values,
+        pd.to_datetime(start_epoch, unit="s"),
+        pd.to_datetime(end_epoch, unit="s"),
+        title="CONTEC HR",
+    )
+
+
+# ---------------------------------------------------
+# Video Processing
+# ---------------------------------------------------
+
+def process_video(video_file, start_epoch):
+
+    # --------------------------------------------------
+    # Save uploaded video to temp file
+    # --------------------------------------------------
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as tmp:
         tmp.write(video_file.getbuffer())
-        temp_path = tmp.name
+        video_path = tmp.name
 
-    video = VideoFileClip(temp_path)
-    video.audio.write_audiofile(f"{output_dir}/audio.wav")
+    video = VideoFileClip(video_path)
+    audio_path = OUTPUT_DIR / "audio.wav"
 
-    fs_audio, audio_data = wavfile.read(f"{output_dir}/audio.wav")
-    audio_avg = (audio_data[:, 0] + audio_data[:, 1]) / 2
+    # --------------------------------------------------
+    # Extract audio
+    # --------------------------------------------------
+    video.audio.write_audiofile(audio_path)
+
+    fs_audio, audio_data = wavfile.read(audio_path)
+
+    # Convert stereo → mono
+    audio_avg = audio_data.mean(axis=1)
+
+    # Bandpass filter for cough frequencies
     audio_f = bandpass(audio_avg, fs_audio)
 
-    # -----------------------------
-    # Short-time energy calculation
-    # -----------------------------
-    frame_length = int(0.02 * fs_audio)  # 20 ms
-    hop = int(0.01 * fs_audio)  # 10 ms
+    # --------------------------------------------------
+    # Short-time energy
+    # --------------------------------------------------
+    frame_len = int(FRAME_LENGTH_MS / 1000 * fs_audio)
+    hop = int(HOP_MS / 1000 * fs_audio)
 
-    energy = np.array(
-        [np.sum(audio_f[i : i + frame_length] ** 2) for i in range(0, len(audio_f) - frame_length, hop)]
-    )
+    energy = np.array([
+        np.sum(audio_f[i:i + frame_len] ** 2)
+        for i in range(0, len(audio_f) - frame_len, hop)
+    ])
 
     energy_time = np.arange(len(energy)) * hop / fs_audio
 
-    # -----------------------------
-    # Peak detection (coughs)
-    # -----------------------------
-    threshold = np.mean(energy) + 10 * np.std(energy)
+    # --------------------------------------------------
+    # Peak detection (cough)
+    # --------------------------------------------------
+    threshold = np.mean(energy) + COUGH_PEAK_FACTOR * np.std(energy)
 
-    peaks, properties = find_peaks(
+    peaks, _ = find_peaks(
         energy,
         height=threshold,
-        distance=int(1 / (hop / fs_audio)),  # minimum 1000 ms between coughs
+        distance=int(fs_audio / hop),
     )
 
     cough_times = peaks * hop / fs_audio
 
-    start = cough_times[0]
-    start += 30
-    duration = 60
-    end = start + duration
+    if len(cough_times) == 0:
+        st.error("No cough detected in audio.")
+        return
 
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as tmp:
-        tmp.write(video_file.getbuffer())
-        input_path = tmp.name
+    # --------------------------------------------------
+    # Synchronization
+    # --------------------------------------------------
+    # ACC cough = start_epoch - TRIM_OFFSET
+    # Align audio cough to that moment
+    video_start_epoch = (start_epoch - TRIM_OFFSET) - cough_times[0]
 
-    output_path = f"{output_dir}/video.mp4"
+    # Build datetime vector for plotting
+    energy_timestamp = video_start_epoch + energy_time
+    energy_datetime = pd.to_datetime(energy_timestamp, unit="s")
+
+    # --------------------------------------------------
+    # Compute trim window
+    # --------------------------------------------------
+    start = cough_times[0] + TRIM_OFFSET
+    end = start + TRIM_DURATION
+
+    start_dt = pd.to_datetime(video_start_epoch + start, unit="s")
+    end_dt = pd.to_datetime(video_start_epoch + end, unit="s")
+
+    # --------------------------------------------------
+    # Trim video
+    # --------------------------------------------------
+    output_video = OUTPUT_DIR / "video.mp4"
 
     subprocess.run(
         [
             "ffmpeg",
             "-y",
-            "-ss",
-            str(start),
-            "-i",
-            input_path,
-            "-t",
-            str(duration),
-            "-c",
-            "copy",
-            output_path,
+            "-ss", str(start),
+            "-i", video_path,
+            "-t", str(TRIM_DURATION),
+            "-c", "copy",
+            output_video,
         ],
         check=True,
     )
 
-    plot_data(energy, energy_time, start, end, peaks)
+    # --------------------------------------------------
+    # Plot cough detection
+    # --------------------------------------------------
+    plot_data(
+        energy,
+        energy_datetime,
+        start_dt,
+        end_dt,
+        peaks,
+        "Cough Detection",
+    )
 
 
-def process_data_acc(file, output_dir):
-    data = pd.read_csv(file, sep=";")
-    data = fix_data(data)
-    data = get_magnitudes(data)
-    peaks, properties = find_peaks(data["magnitude_filt"], height=np.mean(data["magnitude_filt"]) + 10 * np.std(data["magnitude_filt"]), distance=500)
-    inicio = peaks[0]
-    epoch_inicio = data["timestamp_s"][inicio]
-    target_epoch = epoch_inicio + 30
-    start_idx = (data["timestamp_s"] - target_epoch).abs().idxmin()
-    start_epoch = data.loc[start_idx, "timestamp_s"]
-    epoch_fin = start_epoch + 60
-    end_idx = (data["timestamp_s"] - epoch_fin).abs().idxmin()
-    end_epoch = data.loc[end_idx, "timestamp_s"]
-    acc_trim = data.iloc[start_idx:end_idx]
-    acc_trim.to_csv(f"{output_dir}/acc_data.csv", index=False)
-    plot_data(data["magnitude_filt"], data["timestamp_s"], start_epoch, end_epoch, peaks)
-    return start_epoch
-
-
-def process_data_ecg(file, output_dir, start_epoch):
-    data = pd.read_csv(file, sep=";")
-    data = fix_data(data)
-    start_idx = (data["timestamp_s"] - start_epoch).abs().idxmin()
-    start_epoch_real = data.loc[start_idx, "timestamp_s"]
-    epoch_fin = start_epoch_real + 60
-    end_idx = (data["timestamp_s"] - epoch_fin).abs().idxmin()
-    end_epoch = data.loc[end_idx, "timestamp_s"]
-    ecg_trim = data.iloc[start_idx:end_idx]
-    ecg_trim.to_csv(f"{output_dir}/ecg_data.csv", index=False)
-    plot_data(data["ecg_uV"], data["timestamp_s"], start_epoch_real, end_epoch)
-
-
-def process_data_contec(file, output_dir, start_epoch):
-    data = pd.read_csv(file, sep=",")
-    data = data.dropna()
-    start_idx = (data["TimeStamp"] - start_epoch).abs().idxmin()
-    start_epoch = data.loc[start_idx, "TimeStamp"]
-    epoch_fin = start_epoch + 60
-    end_idx = (data["TimeStamp"] - epoch_fin).abs().idxmin()
-    end_epoch = data.loc[end_idx, "TimeStamp"]
-    ecg_trim = data.iloc[start_idx:end_idx]
-    ecg_trim.to_csv(f"{output_dir}/contec_data.csv", index=False)
-    plot_data(data["HR"], data["TimeStamp"], start_epoch, end_epoch)
-
+# ---------------------------------------------------
+# UI
+# ---------------------------------------------------
 
 def sync_data():
+
     st.title("Polar Sync 🐻‍❄️")
     st.sidebar.markdown("# Polar Sync 🐻‍❄️")
-    output_dir = "outputs"
-    reset_dir(output_dir)
+
+    reset_dir(OUTPUT_DIR)
 
     col1, col2, col3, col4 = st.columns(4)
 
-    # --- ACC ---
+    acc_valid = ecg_valid = contec_valid = video_valid = False
+
+    # ACC
     with col1:
-        acc_valid = False
-        acc_file = st.file_uploader("ACC CSV", type=["csv"], key="acc", help="Sube el archivo CSV del acelerómetro. Asegúrate de que el nombre del archivo contenga 'acc' para su correcta identificación.")
-        
+
+        acc_file = st.file_uploader("ACC CSV", type=["csv"], key="acc")
+
         if acc_file:
+
             if "acc" not in acc_file.name.lower():
                 st.error("ACC ❌")
             else:
                 st.success("ACC ✅")
-                start_epoch = process_data_acc(acc_file, output_dir)
+                start_epoch = process_data_acc(acc_file)
                 acc_valid = True
 
-    # --- ECG ---
+    # ECG
     with col2:
-        ecg_valid = False
-        ecg_file = st.file_uploader("ECG CSV", type=["csv"], key="ecg", disabled=not acc_valid, help="Sube el archivo CSV del ECG. Asegúrate de que el nombre del archivo contenga 'ecg' para su correcta identificación.")
+
+        ecg_file = st.file_uploader(
+            "ECG CSV",
+            type=["csv"],
+            key="ecg",
+            disabled=not acc_valid,
+        )
 
         if ecg_file:
+
             if "ecg" not in ecg_file.name.lower():
                 st.error("ECG ❌")
             else:
                 st.success("ECG ✅")
-                process_data_ecg(ecg_file, output_dir, start_epoch)
+                process_data_ecg(ecg_file, start_epoch)
                 ecg_valid = True
 
-    # --- CONTEC ---
+    # CONTEC
     with col3:
-        contec_valid = False
-        contec_file = st.file_uploader("CONTEC CSV", type=["csv"], key="contec", disabled=not (acc_valid and ecg_valid), help="Sube el archivo CSV del CONTEC. Asegúrate de que el nombre del archivo contenga 'contec' para su correcta identificación.")
+
+        contec_file = st.file_uploader(
+            "CONTEC CSV",
+            type=["csv"],
+            key="contec",
+            disabled=not (acc_valid and ecg_valid),
+        )
 
         if contec_file:
+
             if "contec" not in contec_file.name.lower():
                 st.error("CONTEC ❌")
             else:
                 st.success("CONTEC ✅")
-                process_data_contec(contec_file, output_dir, start_epoch)
+                process_data_contec(contec_file, start_epoch)
                 contec_valid = True
 
-
-    # --- VIDEO ---
+    # VIDEO
     with col4:
-        video_valid = False
-        video_file = st.file_uploader("Video MP4", type=["mp4"], key="video", disabled=not (acc_valid and ecg_valid and contec_valid), help="Sube el archivo de video en formato MP4.")
+
+        video_file = st.file_uploader(
+            "Video MP4",
+            type=["mp4"],
+            key="video",
+            disabled=not (acc_valid and ecg_valid and contec_valid),
+        )
 
         if video_file:
+
             st.success("VIDEO ✅")
-            process_video(video_file, output_dir)
+            process_video(video_file, start_epoch)
             video_valid = True
 
-    # --- Downloads ---
     if acc_valid and ecg_valid and contec_valid and video_valid:
+
         zip_data = zip_outputs()
 
         st.sidebar.download_button(
-            label="Descargar Resultados",
+            "Descargar Resultados",
             data=zip_data,
             file_name="outputs.zip",
             mime="application/zip",
         )
 
+
+# ---------------------------------------------------
+# Main
+# ---------------------------------------------------
 
 def main():
     sync_data()
