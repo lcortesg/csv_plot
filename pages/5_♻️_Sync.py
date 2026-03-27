@@ -8,10 +8,11 @@
 """
 
 import io
-import zipfile
 import shutil
-import subprocess
+import zipfile
 import tempfile
+import subprocess
+
 from pathlib import Path
 
 import numpy as np
@@ -23,7 +24,6 @@ from PIL import Image
 from moviepy import VideoFileClip
 from scipy.io import wavfile
 from scipy.signal import butter, filtfilt, find_peaks
-
 
 # ---------------------------------------------------
 # Streamlit Config
@@ -58,6 +58,7 @@ HOP_MS = 10
 # File Utilities
 # ---------------------------------------------------
 
+
 def reset_dir(path: Path):
     shutil.rmtree(path, ignore_errors=True)
     path.mkdir(parents=True, exist_ok=True)
@@ -78,6 +79,7 @@ def zip_outputs():
 # ---------------------------------------------------
 # Signal Processing
 # ---------------------------------------------------
+
 
 def butter_lowpass_filter(data, cutoff, fs, order=1):
 
@@ -109,6 +111,7 @@ def get_sampling_frequency(timestamps):
 # Plotting
 # ---------------------------------------------------
 
+
 def plot_data(signal, epoch, start_epoch, end_epoch, peaks=None, title="Signal"):
 
     fig = go.Figure()
@@ -123,7 +126,6 @@ def plot_data(signal, epoch, start_epoch, end_epoch, peaks=None, title="Signal")
     )
 
     if peaks is not None:
-
         fig.add_trace(
             go.Scatter(
                 x=epoch[peaks],
@@ -150,17 +152,16 @@ def plot_data(signal, epoch, start_epoch, end_epoch, peaks=None, title="Signal")
 # Data Preparation
 # ---------------------------------------------------
 
+
 def fix_data(df):
 
     df = df.dropna()
 
     if "timestamp_s" in df.columns:
-
         df["timestamp"] = df["timestamp_s"].str.replace(",", ".").astype(float)
         df["datetime"] = pd.to_datetime(df["timestamp"], unit="s")
 
     elif "TimeStamp" in df.columns:
-
         df["timestamp"] = df["TimeStamp"].astype(float)
         df["datetime"] = pd.to_datetime(df["timestamp"], unit="s")
 
@@ -204,6 +205,7 @@ def compute_magnitude(df):
 # ACC Processing
 # ---------------------------------------------------
 
+
 def process_data_acc(file):
 
     data = pd.read_csv(file, sep=";")
@@ -242,6 +244,7 @@ def process_data_acc(file):
 # ECG Processing
 # ---------------------------------------------------
 
+
 def process_data_ecg(file, start_epoch):
 
     data = pd.read_csv(file, sep=";")
@@ -269,6 +272,7 @@ def process_data_ecg(file, start_epoch):
 # CONTEC Processing
 # ---------------------------------------------------
 
+
 def process_data_contec(file, start_epoch):
 
     data = pd.read_csv(file)
@@ -295,6 +299,7 @@ def process_data_contec(file, start_epoch):
 # ---------------------------------------------------
 # Video Processing
 # ---------------------------------------------------
+
 
 def process_video(video_file, start_epoch):
 
@@ -327,10 +332,9 @@ def process_video(video_file, start_epoch):
     frame_len = int(FRAME_LENGTH_MS / 1000 * fs_audio)
     hop = int(HOP_MS / 1000 * fs_audio)
 
-    energy = np.array([
-        np.sum(audio_f[i:i + frame_len] ** 2)
-        for i in range(0, len(audio_f) - frame_len, hop)
-    ])
+    energy = np.array(
+        [np.sum(audio_f[i : i + frame_len] ** 2) for i in range(0, len(audio_f) - frame_len, hop)]
+    )
 
     energy_time = np.arange(len(energy)) * hop / fs_audio
 
@@ -380,10 +384,14 @@ def process_video(video_file, start_epoch):
         [
             "ffmpeg",
             "-y",
-            "-ss", str(start),
-            "-i", video_path,
-            "-t", str(TRIM_DURATION),
-            "-c", "copy",
+            "-ss",
+            str(start),
+            "-i",
+            video_path,
+            "-t",
+            str(TRIM_DURATION),
+            "-c",
+            "copy",
             output_video,
         ],
         check=True,
@@ -406,6 +414,7 @@ def process_video(video_file, start_epoch):
 # UI
 # ---------------------------------------------------
 
+
 def sync_data():
 
     st.title("Polar Sync 🐻‍❄️")
@@ -419,11 +428,9 @@ def sync_data():
 
     # ACC
     with col1:
-
         acc_file = st.file_uploader("ACC CSV", type=["csv"], key="acc")
 
         if acc_file:
-
             if "acc" not in acc_file.name.lower():
                 st.error("ACC ❌")
             else:
@@ -433,7 +440,6 @@ def sync_data():
 
     # ECG
     with col2:
-
         ecg_file = st.file_uploader(
             "ECG CSV",
             type=["csv"],
@@ -442,7 +448,6 @@ def sync_data():
         )
 
         if ecg_file:
-
             if "ecg" not in ecg_file.name.lower():
                 st.error("ECG ❌")
             else:
@@ -452,7 +457,6 @@ def sync_data():
 
     # CONTEC
     with col3:
-
         contec_file = st.file_uploader(
             "CONTEC CSV",
             type=["csv"],
@@ -461,7 +465,6 @@ def sync_data():
         )
 
         if contec_file:
-
             if "contec" not in contec_file.name.lower():
                 st.error("CONTEC ❌")
             else:
@@ -471,7 +474,6 @@ def sync_data():
 
     # VIDEO
     with col4:
-
         video_file = st.file_uploader(
             "Video MP4",
             type=["mp4"],
@@ -480,13 +482,11 @@ def sync_data():
         )
 
         if video_file:
-
             st.success("VIDEO ✅")
             process_video(video_file, start_epoch)
             video_valid = True
 
     if acc_valid and ecg_valid and contec_valid and video_valid:
-
         zip_data = zip_outputs()
 
         st.sidebar.download_button(
@@ -500,6 +500,7 @@ def sync_data():
 # ---------------------------------------------------
 # Main
 # ---------------------------------------------------
+
 
 def main():
     sync_data()
