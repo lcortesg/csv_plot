@@ -12,6 +12,7 @@ import io
 import zipfile
 import tempfile
 import subprocess
+import shutil
 
 from pathlib import Path
 
@@ -112,10 +113,19 @@ def get_magnitudes(df):
     y = df["y_mG"].values
     z = df["z_mG"].values
 
+    # Magnitude calculation
     mag = np.sqrt(x**2 + y**2 + z**2)
     df["magnitude"] = mag
+
+    # Absolute magnitude calculation
     mag_abs = np.abs(mag - np.mean(mag))
     df["magnitude_abs"] = mag_abs
+
+    # Filtered absolute magnitude
+    fs = get_sf(df)
+    mag_filt = butter_lowpass_filter(data=df["magnitude_abs"], cutoff=20, fs=fs, order=1)
+    df["magnitude_filt"] = mag_filt
+
     return df
 
 
@@ -126,14 +136,9 @@ def get_sf(df):
     return fs
 
 
-def reset_dir(path):
-    import shutil
-
-    from pathlib import Path
-
+def reset_dir(path: str):
     p = Path(path)
-    if p.exists():
-        shutil.rmtree(p)
+    shutil.rmtree(p, ignore_errors=True)
     p.mkdir(parents=True, exist_ok=True)
 
 
@@ -209,10 +214,7 @@ def process_data_acc(file, output_dir):
     data = pd.read_csv(file, sep=";")
     data = fix_data(data)
     data = get_magnitudes(data)
-    fs = get_sf(data)
-    mag_filt = butter_lowpass_filter(data=data["magnitude_abs"], cutoff=20, fs=fs, order=1)
-    data["magnitude_filt"] = mag_filt
-    peaks, properties = find_peaks(mag_filt, height=np.mean(mag_filt) + 10 * np.std(mag_filt), distance=500)
+    peaks, properties = find_peaks(data["magnitude_filt"], height=np.mean(data["magnitude_filt"]) + 10 * np.std(data["magnitude_filt"]), distance=500)
     inicio = peaks[0]
     epoch_inicio = data["timestamp_s"][inicio]
     target_epoch = epoch_inicio + 30
@@ -223,7 +225,7 @@ def process_data_acc(file, output_dir):
     end_epoch = data.loc[end_idx, "timestamp_s"]
     acc_trim = data.iloc[start_idx:end_idx]
     acc_trim.to_csv(f"{output_dir}/acc_data.csv", index=False)
-    plot_data(mag_filt, data["timestamp_s"], start_epoch, end_epoch, peaks)
+    plot_data(data["magnitude_filt"], data["timestamp_s"], start_epoch, end_epoch, peaks)
     return start_epoch
 
 
@@ -231,13 +233,13 @@ def process_data_ecg(file, output_dir, start_epoch):
     data = pd.read_csv(file, sep=";")
     data = fix_data(data)
     start_idx = (data["timestamp_s"] - start_epoch).abs().idxmin()
-    start_epoch = data.loc[start_idx, "timestamp_s"]
-    epoch_fin = start_epoch + 60
+    start_epoch_real = data.loc[start_idx, "timestamp_s"]
+    epoch_fin = start_epoch_real + 60
     end_idx = (data["timestamp_s"] - epoch_fin).abs().idxmin()
     end_epoch = data.loc[end_idx, "timestamp_s"]
     ecg_trim = data.iloc[start_idx:end_idx]
     ecg_trim.to_csv(f"{output_dir}/ecg_data.csv", index=False)
-    plot_data(data["ecg_uV"], data["timestamp_s"], start_epoch, end_epoch)
+    plot_data(data["ecg_uV"], data["timestamp_s"], start_epoch_real, end_epoch)
 
 
 def process_data_contec(file, output_dir, start_epoch):
@@ -263,71 +265,56 @@ def sync_data():
 
     # --- ACC ---
     with col1:
-        acc_file = st.file_uploader("ACC CSV", type=["csv"], key="acc")
         acc_valid = False
+        acc_file = st.file_uploader("ACC CSV", type=["csv"], key="acc", help="Sube el archivo CSV del acelerómetro. Asegúrate de que el nombre del archivo contenga 'acc' para su correcta identificación.")
         
         if acc_file:
             if "acc" not in acc_file.name.lower():
-                st.error("Debe contener 'acc'")
+                st.error("ACC ❌")
             else:
-                st.success("ACC ✓")
+                st.success("ACC ✅")
                 start_epoch = process_data_acc(acc_file, output_dir)
                 acc_valid = True
 
     # --- ECG ---
     with col2:
-        ecg_file = None
         ecg_valid = False
+        ecg_file = st.file_uploader("ECG CSV", type=["csv"], key="ecg", disabled=not acc_valid, help="Sube el archivo CSV del ECG. Asegúrate de que el nombre del archivo contenga 'ecg' para su correcta identificación.")
 
-        if acc_valid:
-            ecg_file = st.file_uploader("ECG CSV", type=["csv"], key="ecg")
-
-            if ecg_file:
-                if "ecg" not in ecg_file.name.lower():
-                    st.error("Debe contener 'ecg'")
-                else:
-                    st.success("ECG ✓")
-                    process_data_ecg(ecg_file, output_dir, start_epoch)
-                    ecg_valid = True
-        else:
-            st.info("Subir ACC")
+        if ecg_file:
+            if "ecg" not in ecg_file.name.lower():
+                st.error("ECG ❌")
+            else:
+                st.success("ECG ✅")
+                process_data_ecg(ecg_file, output_dir, start_epoch)
+                ecg_valid = True
 
     # --- CONTEC ---
     with col3:
-        contec_file = None
         contec_valid = False
+        contec_file = st.file_uploader("CONTEC CSV", type=["csv"], key="contec", disabled=not (acc_valid and ecg_valid), help="Sube el archivo CSV del CONTEC. Asegúrate de que el nombre del archivo contenga 'contec' para su correcta identificación.")
 
-        if acc_valid and ecg_valid:
-            contec_file = st.file_uploader("CONTEC CSV", type=["csv"], key="contec")
+        if contec_file:
+            if "contec" not in contec_file.name.lower():
+                st.error("CONTEC ❌")
+            else:
+                st.success("CONTEC ✅")
+                process_data_contec(contec_file, output_dir, start_epoch)
+                contec_valid = True
 
-            if contec_file:
-                if "contec" not in contec_file.name.lower():
-                    st.error("Debe contener 'contec'")
-                else:
-                    st.success("CONTEC ✓")
-                    process_data_contec(contec_file, output_dir, start_epoch)
-                    contec_valid = True
-
-        else:
-            st.info("Subir ACC y ECG")
 
     # --- VIDEO ---
     with col4:
-        video_file = None
         video_valid = False
+        video_file = st.file_uploader("Video MP4", type=["mp4"], key="video", disabled=not (acc_valid and ecg_valid and contec_valid), help="Sube el archivo de video en formato MP4.")
 
-        if acc_valid and ecg_valid and contec_valid:
-            video_file = st.file_uploader("Video MP4", type=["mp4"], key="video")
-
-            if video_file:
-                st.success("Video ✓")
-                process_video(video_file, output_dir)
-                video_valid = True
-        else:
-            st.info("Subir ACC, ECG y CONTEC")
+        if video_file:
+            st.success("VIDEO ✅")
+            process_video(video_file, output_dir)
+            video_valid = True
 
     # --- Downloads ---
-    if acc_valid and ecg_valid and video_valid:
+    if acc_valid and ecg_valid and contec_valid and video_valid:
         zip_data = zip_outputs()
 
         st.sidebar.download_button(
