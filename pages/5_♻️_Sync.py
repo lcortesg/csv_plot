@@ -485,7 +485,7 @@ def sync_data():
             "CONTEC CSV",
             type=["csv"],
             key="contec",
-            disabled=not (acc_valid and ecg_valid),
+            disabled=not acc_valid,
         )
 
         if contec_file:
@@ -502,7 +502,7 @@ def sync_data():
             "Video MP4",
             type=["mp4"],
             key="video",
-            disabled=not (acc_valid and ecg_valid and contec_valid),
+            disabled=not acc_valid,
         )
 
         if video_file:
@@ -510,7 +510,7 @@ def sync_data():
             process_video(video_file, start_epoch)
             video_valid = True
 
-    if acc_valid and ecg_valid and contec_valid and video_valid:
+    if acc_valid and ecg_valid and video_valid:
         zip_data = zip_outputs()
 
         st.sidebar.download_button(
