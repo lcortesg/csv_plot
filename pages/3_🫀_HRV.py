@@ -18,6 +18,8 @@ import streamlit as st
 import pyhrv.time_domain as td
 import plotly.graph_objects as go
 import pyhrv.frequency_domain as fd
+import neurokit2 as nk
+import biosppy.signals.ecg as ecg
 
 from PIL import Image
 from hrvanalysis import get_time_domain_features, get_frequency_domain_features
@@ -114,7 +116,7 @@ def data_plot(hrvalues, rr_intervals, ts, temp, showTemp):
 def data_analysis(rr_intervals):
     method = st.selectbox(
         "Seleccionar método de análisis",
-        ("PYHRV", "HRV-ANALYSIS", "HEARTPY"),
+        ("PYHRV", "HRV-ANALYSIS", "HEARTPY", "NEUROKIT2", "BIOSPPY"),
     )
 
     try:
@@ -135,6 +137,14 @@ def data_analysis(rr_intervals):
                 frequency_domain_results = get_frequency_domain_features(
                     rr_intervals
                 )  # hp.hrv(working_data, sample_rate=1.0)
+            if method == "NEUROKIT2":
+                url = "https://neurokit2.readthedocs.io/"
+                time_domain_results = nk.hrv_time(rr_intervals)
+                frequency_domain_results = nk.hrv_frequency(rr_intervals)
+            if method == "BIOSPPY":
+                url = "https://biosppy.readthedocs.io/"
+                time_domain_results = get_time_domain_features(rr_intervals)
+                frequency_domain_results = get_frequency_domain_features(rr_intervals)
             st.markdown(
                 f"Consultar más información sobre la librería utilizada en el siguiente link: [{method}](%s)"
                 % url
