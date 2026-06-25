@@ -19,7 +19,6 @@ import pyhrv.time_domain as td
 import plotly.graph_objects as go
 import pyhrv.frequency_domain as fd
 import neurokit2 as nk
-import biosppy.signals.ecg as ecg
 
 from PIL import Image
 from hrvanalysis import get_time_domain_features, get_frequency_domain_features
@@ -86,6 +85,7 @@ def data_extraction(data):
     return hrvalues, rr_intervals, ts, temp, showTemp
 
 
+
 def data_plot(hrvalues, rr_intervals, ts, temp, showTemp):
     st.write("### BPM & Temp")
     # Create a Plotly figure
@@ -113,11 +113,8 @@ def data_plot(hrvalues, rr_intervals, ts, temp, showTemp):
     st.plotly_chart(fig)
 
 
-def data_analysis(rr_intervals):
-    method = st.selectbox(
-        "Seleccionar método de análisis",
-        ("PYHRV", "HRV-ANALYSIS", "HEARTPY", "NEUROKIT2", "BIOSPPY"),
-    )
+
+def get_results(method, rr_intervals):
 
     try:
         with warnings.catch_warnings(record=True) as W:
@@ -126,10 +123,12 @@ def data_analysis(rr_intervals):
                 url = "https://pyhrv.readthedocs.io/en/latest/"
                 time_domain_results = td.time_domain(rr_intervals)
                 frequency_domain_results = fd.welch_psd(rr_intervals, show=False)
+                return time_domain_results, frequency_domain_results
             if method == "HRV-ANALYSIS":
                 url = "https://aura-healthcare.github.io/hrv-analysis/"
                 time_domain_results = get_time_domain_features(rr_intervals)
                 frequency_domain_results = get_frequency_domain_features(rr_intervals)
+                return time_domain_results, frequency_domain_results
             if method == "HEARTPY":
                 url = "https://python-heart-rate-analysis-toolkit.readthedocs.io/en/latest/"
                 working_data, measures = hp.process_rr(rr_intervals)
@@ -137,14 +136,13 @@ def data_analysis(rr_intervals):
                 frequency_domain_results = get_frequency_domain_features(
                     rr_intervals
                 )  # hp.hrv(working_data, sample_rate=1.0)
+                return time_domain_results, frequency_domain_results
             if method == "NEUROKIT2":
-                url = "https://neurokit2.readthedocs.io/"
-                time_domain_results = nk.hrv_time(rr_intervals)
-                frequency_domain_results = nk.hrv_frequency(rr_intervals)
-            if method == "BIOSPPY":
-                url = "https://biosppy.readthedocs.io/"
-                time_domain_results = get_time_domain_features(rr_intervals)
-                frequency_domain_results = get_frequency_domain_features(rr_intervals)
+                url = "https://neuropsychology.github.io/NeuroKit/"
+                peaks = nk.intervals_to_peaks(rr_intervals)
+                time_domain_results = nk.hrv_time(peaks)
+                frequency_domain_results = nk.hrv_frequency(peaks)
+                return time_domain_results, frequency_domain_results
             st.markdown(
                 f"Consultar más información sobre la librería utilizada en el siguiente link: [{method}](%s)"
                 % url
@@ -154,24 +152,55 @@ def data_analysis(rr_intervals):
                 for warning in W:
                     st.warning(f"Advertencia: {warning.message}")
 
-        if st.sidebar.toggle("Resultados temporales"):
-            if method == "PYHRV":
-                st.write(time_domain_results[20])
-            for i in time_domain_results.keys():
-                st.markdown(f"""
-                    **{i}**: {time_domain_results[i]}\n
-                    """)
-        if method != "HEARTPY":
-            if st.sidebar.toggle("Resultados en Frecuencia"):
-                if method == "PYHRV":
-                    st.write(frequency_domain_results[8])
-                for i in frequency_domain_results.keys():
-                    st.markdown(f"""
-                        **{i}**: {frequency_domain_results[i]}\n
-                        """)
-
     except Exception as e:
         st.error(f"Error procesando datos: {e}")
+
+
+def show_reults(method, time_domain_results, frequency_domain_results):
+    st.write("**Resultados temporales**")
+    for i in time_domain_results.keys():
+        value = time_domain_results[i]
+        if hasattr(value, 'values'):
+            value = value.values[0]
+        st.markdown(f"**{i}**: {value}\n")
+
+    st.write("**Resultados en Frecuencia**")
+    for i in frequency_domain_results.keys():
+        value = frequency_domain_results[i]
+        if hasattr(value, 'values'):
+            value = value.values[0]
+        st.markdown(f"**{i}**: {value}\n")
+
+    if method == "PYHRV":
+        st.write(time_domain_results[20])
+        st.write(frequency_domain_results[8])
+
+
+def data_analysis(rr_intervals):
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        method = "HRV-ANALYSIS"
+        st.markdown(f"**{method}**")
+        time_domain_results, frequency_domain_results = get_results(method, rr_intervals)
+        show_reults(method, time_domain_results, frequency_domain_results)
+    with col2:
+        method = "NEUROKIT2"
+        st.markdown(f"**{method}**")
+        time_domain_results, frequency_domain_results = get_results(method, rr_intervals)
+        show_reults(method, time_domain_results, frequency_domain_results)
+    with col3:
+        method = "PYHRV"
+        st.markdown(f"**{method}**")
+        time_domain_results, frequency_domain_results = get_results(method, rr_intervals)
+        show_reults(method, time_domain_results, frequency_domain_results)
+    with col4:
+        method = "HEARTPY"
+        st.markdown(f"**{method}**")
+        time_domain_results, frequency_domain_results = get_results(method, rr_intervals)
+        show_reults(method, time_domain_results, frequency_domain_results)
+
+
+
 
 
 def hrv_comp():
